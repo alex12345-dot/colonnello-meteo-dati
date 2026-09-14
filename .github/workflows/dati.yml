@@ -1,0 +1,92 @@
+name: dati
+
+# Le corse ECMWF escono a 00/06/12/18 UTC e l'open data arriva ~7-9 h dopo l'ora nominale.
+# Le schedule di GitHub partono spesso in ritardo: qui non e' un problema, il lavoro controlla
+# qual e' l'ultima corsa pubblicata e non fa nulla se e' gia' quella online.
+on:
+  schedule:
+    - cron: "40 8,14,20,2 * * *"
+  workflow_dispatch:
+    inputs:
+      passi:
+        description: "intervallo dei passi, es. 0-72"
+        default: "0-72"
+
+concurrency:
+  group: dati
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  costruisci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Corsa gia' pubblicata
+        id: stato
+        run: |
+          precedente=$(curl -sf "https://alex12345-dot.github.io/colonnello-meteo-dati/manifest.json" \
+            | python -c 'import sys,json;print(json.load(sys.stdin).get("run",""))' || echo none)
+          echo "precedente=$precedente" >> "$GITHUB_OUTPUT"
+          echo "ultima online: $precedente"
+
+      - name: Costruisci i livelli
+        run: |
+          python pipeline/build.py --model ifs --run latest \
+            --steps "${{ inputs.passi || '0-72' }}" \
+            --layers wind10m,t2m,precip --out out/
+
+      - name: La corsa deve essere nuova
+        run: |
+          nuova=$(python -c 'import json;print(json.load(open("out/manifest.json"))["run"])')
+          echo "corsa prodotta: $nuova (precedente: ${{ steps.stato.outputs.precedente }})"
+          test -n "$nuova"
+          if [ "$nuova" = "${{ steps.stato.outputs.precedente }}" ]; then
+            echo "::notice::corsa gia' online, niente da pubblicare"
+            echo "SALTA=1" >> "$GITHUB_ENV"
+          fi
+
+      # Un solo commit sempre riscritto: i dati vecchi non servono e il repository resta piccolo.
+      - name: Pubblica su Pages
+        if: env.SALTA != '1'
+        run: |
+          cp README.md out/ 2>/dev/null || true
+          touch out/.nojekyll
+          cd out
+          git init -q
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          git commit -q -m "dati $(python -c 'import json;print(json.load(open("manifest.json"))["run"])')"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
+
+      - name: Prova che i dati pubblicati si leggano
+        if: env.SALTA != '1'
+        run: |
+          for tentativo in 1 2 3 4 5 6 7 8; do
+            sleep 20
+            if curl -sf "https://alex12345-dot.github.io/colonnello-meteo-dati/manifest.json" -o letto.json; then
+              python - <<'PY'
+          import json
+          m = json.load(open("letto.json"))
+          assert m["steps"], "manifest senza passi"
+          assert m["grid"]["lon0"] == -180.0, "origine della griglia non dichiarata"
+          print("online:", len(m["steps"]), "passi della corsa", m["run"])
+          PY
+              exit 0
+            fi
+            echo "Pages non ancora aggiornato, ritento ($tentativo)"
+          done
+          echo "::error::i dati non sono leggibili da Pages dopo il caricamento"
+          exit 1
