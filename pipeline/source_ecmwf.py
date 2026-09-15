@@ -112,12 +112,26 @@ def find_parameters(
     return found, absent
 
 
+def _retry_after_seconds(error: HTTPError) -> float | None:
+    """Secondi indicati da Retry-After (solo la forma numerica), altrimenti None."""
+    value = None
+    headers = getattr(error, "headers", None)
+    if headers is not None:
+        value = headers.get("Retry-After")
+    if value is None:
+        return None
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return None
+
+
 class ECMWFSource:
     def __init__(
         self,
         *,
-        attempts: int = 3,
-        backoff: float = 0.5,
+        attempts: int = 6,
+        backoff: float = 5.0,
         timeout: float = 30.0,
         opener: Callable = urlopen,
         sleeper: Callable[[float], None] = time.sleep,
@@ -143,6 +157,13 @@ class ECMWFSource:
                 if exc.code == 404:
                     raise RunNotAvailable(url) from exc
                 last_error = exc
+                # S3 risponde "503 Slow Down" quando si e' troppo veloci (15/09/2026: tre
+                # giri di fila persi con 3 tentativi e attese di 0,5 e 1 s). Il ritmo lo
+                # detta il server: si rispetta Retry-After se c'e', altrimenti si rallenta.
+                retry_after = _retry_after_seconds(exc)
+                if retry_after is not None and attempt + 1 < self.attempts:
+                    self.sleeper(max(retry_after, self.backoff * (2**attempt)))
+                    continue
             except RangeNotHonored:
                 raise
             except (URLError, TimeoutError, OSError) as exc:

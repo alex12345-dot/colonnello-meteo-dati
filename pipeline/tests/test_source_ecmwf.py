@@ -45,15 +45,66 @@ def test_404_is_run_not_available_without_becoming_network_error():
         source.get_index("ifs", "2026091300", 12)
 
 
-def test_network_error_retries_three_times_and_stays_distinct():
+def test_network_error_retries_and_stays_distinct():
     calls = []
 
     def offline(request, timeout):
         calls.append(request.full_url)
         raise URLError("offline")
 
-    source = ECMWFSource(opener=offline, sleeper=lambda _: None)
+    source = ECMWFSource(attempts=3, opener=offline, sleeper=lambda _: None)
     with pytest.raises(NetworkError) as raised:
         source.get_index("ifs", "2026091300", 12)
     assert not isinstance(raised.value, RunNotAvailable)
     assert len(calls) == 3
+
+
+def test_503_slow_down_backs_off_for_minutes_not_seconds():
+    # Il bucket ECMWF risponde "503 Slow Down" a raffica: con 3 tentativi da 0,5 s il giro
+    # moriva (15/09/2026). Di default si insiste piu' a lungo e con attese crescenti.
+    waits = []
+    calls = []
+
+    def throttled(request, timeout):
+        calls.append(request.full_url)
+        raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+
+    source = ECMWFSource(opener=throttled, sleeper=waits.append)
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 0)
+    assert len(calls) >= 5
+    assert sum(waits) >= 120
+    assert waits == sorted(waits)
+
+
+def test_503_honours_retry_after_and_then_succeeds():
+    from email.message import Message
+
+    waits = []
+    state = {"n": 0}
+    index_text = (FIXTURES / "ifs-12h.index").read_bytes()
+
+    class Ok:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return index_text
+
+    def flaky(request, timeout):
+        state["n"] += 1
+        if state["n"] == 1:
+            headers = Message()
+            headers["Retry-After"] = "30"
+            raise HTTPError(request.full_url, 503, "Slow Down", headers, None)
+        return Ok()
+
+    source = ECMWFSource(opener=flaky, sleeper=waits.append)
+    assert source.get_index("ifs", "2026091300", 12)
+    assert waits == [30.0]
+    assert state["n"] == 2
