@@ -72,9 +72,66 @@ def test_503_slow_down_backs_off_for_minutes_not_seconds():
     source = ECMWFSource(opener=throttled, sleeper=waits.append)
     with pytest.raises(NetworkError):
         source.get_index("ifs", "2026091300", 0)
-    assert len(calls) >= 5
-    assert sum(waits) >= 120
-    assert waits == sorted(waits)
+    assert len(calls) == 6
+    assert waits == [5.0, 10.0, 20.0, 40.0, 60.0]  # cresce, ma mai oltre MAX_WAIT_SECONDS
+
+
+def test_permanent_http_errors_are_not_retried():
+    calls = []
+
+    def forbidden(request, timeout):
+        calls.append(request.full_url)
+        raise HTTPError(request.full_url, 403, "Forbidden", {}, None)
+
+    source = ECMWFSource(opener=forbidden, sleeper=lambda _: pytest.fail("non deve attendere"))
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 0)
+    assert len(calls) == 1
+
+
+def test_retry_after_is_clamped_and_accepts_http_date():
+    from email.message import Message
+    from datetime import datetime, timedelta, timezone
+    from pipeline.source_ecmwf import MAX_WAIT_SECONDS, _retry_after_seconds
+
+    def err(value):
+        headers = Message()
+        headers["Retry-After"] = value
+        return HTTPError("u", 503, "Slow Down", headers, None)
+
+    assert _retry_after_seconds(err("3600")) == MAX_WAIT_SECONDS
+    assert _retry_after_seconds(err("inf")) is None
+    assert _retry_after_seconds(err("-5")) == 0.0
+    now = datetime(2026, 9, 15, 12, 0, tzinfo=timezone.utc)
+    later = (now + timedelta(seconds=30)).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    assert _retry_after_seconds(err(later), now=now) == 30.0
+    assert _retry_after_seconds(err("boh")) is None
+
+
+def test_incomplete_read_is_retried():
+    from http.client import IncompleteRead
+
+    state = {"n": 0}
+    index_text = (FIXTURES / "ifs-12h.index").read_bytes()
+
+    class Body:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            state["n"] += 1
+            if state["n"] == 1:
+                raise IncompleteRead(b"met")
+            return index_text
+
+    source = ECMWFSource(opener=lambda request, timeout: Body(), sleeper=lambda _: None)
+    assert source.get_index("ifs", "2026091300", 12)
+    assert state["n"] == 2
 
 
 def test_503_honours_retry_after_and_then_succeeds():

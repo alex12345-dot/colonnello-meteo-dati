@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
+from http.client import HTTPException
 import json
+import math
 import time
 from typing import Callable, Iterable
 from urllib.error import HTTPError, URLError
@@ -11,6 +14,12 @@ from urllib.request import Request, urlopen
 
 
 BASE_URL = "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com"
+# Stati HTTP che vale la pena ritentare: throttling e guasti momentanei. Un 403 o un 400
+# non cambia riprovando, e sei attese sarebbero solo tempo perso.
+TRANSIENT_STATUS = frozenset({408, 429, 500, 502, 503, 504})
+# Tetto a ogni singola attesa: ne' un Retry-After ostile ne' il backoff possono bloccare
+# il job per l'intero timeout del workflow (rilievo Codex 15/09/2026).
+MAX_WAIT_SECONDS = 60.0
 MODEL_PATHS = {"ifs": "ifs", "aifs": "aifs-single", "aifs-single": "aifs-single"}
 
 
@@ -112,18 +121,26 @@ def find_parameters(
     return found, absent
 
 
-def _retry_after_seconds(error: HTTPError) -> float | None:
-    """Secondi indicati da Retry-After (solo la forma numerica), altrimenti None."""
-    value = None
+def _retry_after_seconds(error: HTTPError, now: datetime | None = None) -> float | None:
+    """Secondi indicati da Retry-After (numero o data HTTP), limitati a MAX_WAIT_SECONDS."""
     headers = getattr(error, "headers", None)
-    if headers is not None:
-        value = headers.get("Retry-After")
+    value = headers.get("Retry-After") if headers is not None else None
     if value is None:
         return None
+    seconds: float | None = None
     try:
-        return max(0.0, float(value))
+        seconds = float(value)
     except (TypeError, ValueError):
+        try:
+            when = parsedate_to_datetime(str(value))
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
+            seconds = (when - (now or datetime.now(timezone.utc))).total_seconds()
+        except (TypeError, ValueError, IndexError):
+            return None
+    if seconds is None or not math.isfinite(seconds):
         return None
+    return min(max(0.0, seconds), MAX_WAIT_SECONDS)
 
 
 class ECMWFSource:
@@ -147,6 +164,7 @@ class ECMWFSource:
         request = Request(url, headers=headers or {})
         last_error: BaseException | None = None
         for attempt in range(self.attempts):
+            wait = min(self.backoff * (2**attempt), MAX_WAIT_SECONDS)
             try:
                 with self.opener(request, timeout=self.timeout) as response:
                     status = getattr(response, "status", None)
@@ -156,20 +174,22 @@ class ECMWFSource:
             except HTTPError as exc:
                 if exc.code == 404:
                     raise RunNotAvailable(url) from exc
+                if exc.code not in TRANSIENT_STATUS:
+                    raise NetworkError(f"HTTP {exc.code} non ritentabile: {url}") from exc
                 last_error = exc
                 # S3 risponde "503 Slow Down" quando si e' troppo veloci (15/09/2026: tre
                 # giri di fila persi con 3 tentativi e attese di 0,5 e 1 s). Il ritmo lo
                 # detta il server: si rispetta Retry-After se c'e', altrimenti si rallenta.
                 retry_after = _retry_after_seconds(exc)
-                if retry_after is not None and attempt + 1 < self.attempts:
-                    self.sleeper(max(retry_after, self.backoff * (2**attempt)))
-                    continue
+                if retry_after is not None:
+                    wait = max(retry_after, wait)
             except RangeNotHonored:
                 raise
-            except (URLError, TimeoutError, OSError) as exc:
+            except (URLError, TimeoutError, OSError, HTTPException) as exc:
+                # HTTPException copre IncompleteRead: connessione caduta a meta' payload.
                 last_error = exc
             if attempt + 1 < self.attempts:
-                self.sleeper(self.backoff * (2**attempt))
+                self.sleeper(wait)
         raise NetworkError(f"richiesta fallita dopo {self.attempts} tentativi: {url}") from last_error
 
     def get_index(self, model: str, run: str | datetime, step: int) -> list[dict]:
