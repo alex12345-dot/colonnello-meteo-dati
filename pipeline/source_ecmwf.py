@@ -233,18 +233,30 @@ class ECMWFSource:
         step: int = 0,
         now: datetime | None = None,
         count: int = 12,
+        stop_at_first: bool = False,
     ) -> list[datetime]:
+        # Le candidate sono in ordine dalla piu' recente. Con `stop_at_first` ci si ferma alla
+        # prima pubblicata: chiedere anche le altre undici e' solo traffico verso un bucket che
+        # risponde "503 Slow Down", e il 16/09/2026 due giri sono morti su una corsa di due
+        # giorni prima quando quella buona era gia' stata trovata.
         available = []
         for run in candidate_runs(now, count):
             try:
                 self.get_index(model, run, step)
             except RunNotAvailable:
                 continue
+            except NetworkError:
+                # Una corsa piu' vecchia irraggiungibile non toglie niente a quella gia' trovata.
+                if available:
+                    break
+                raise
             available.append(run)
+            if stop_at_first:
+                break
         return available
 
     def latest_run(self, model: str, *, step: int = 0, now: datetime | None = None) -> datetime:
-        runs = self.available_runs(model, step=step, now=now)
+        runs = self.available_runs(model, step=step, now=now, stop_at_first=True)
         if not runs:
             raise RunNotAvailable(f"nessuna run pubblicata per {model}")
         return runs[0]

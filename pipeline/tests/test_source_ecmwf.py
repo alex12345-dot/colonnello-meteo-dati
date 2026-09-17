@@ -165,3 +165,55 @@ def test_503_honours_retry_after_and_then_succeeds():
     assert source.get_index("ifs", "2026091300", 12)
     assert waits == [30.0]
     assert state["n"] == 2
+
+
+def _index_ok():
+    index_text = (FIXTURES / "ifs-12h.index").read_bytes()
+
+    class Ok:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return index_text
+
+    return Ok()
+
+
+def test_latest_run_stops_at_the_first_published_run():
+    # 16/09/2026: la sonda chiedeva tutte le 12 candidate e un 503 sulla decima
+    # buttava via la corsa buona gia' trovata. Ora: una 404, una 200, stop.
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) == 1:
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        return _index_ok()
+
+    from datetime import datetime, timezone
+    source = ECMWFSource(opener=opener, sleeper=lambda _: None)
+    run = source.latest_run("ifs", now=datetime(2026, 9, 16, 18, 30, tzinfo=timezone.utc))
+    assert run == datetime(2026, 9, 16, 12, tzinfo=timezone.utc)
+    assert len(calls) == 2
+
+
+def test_available_runs_keeps_newer_runs_when_an_older_one_is_throttled():
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) <= 2:
+            return _index_ok()
+        raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+
+    from datetime import datetime, timezone
+    source = ECMWFSource(attempts=2, opener=opener, sleeper=lambda _: None)
+    runs = source.available_runs("ifs", now=datetime(2026, 9, 16, 18, 30, tzinfo=timezone.utc))
+    assert len(runs) == 2
+    assert len(calls) == 4  # due riuscite + due tentativi della terza, poi stop

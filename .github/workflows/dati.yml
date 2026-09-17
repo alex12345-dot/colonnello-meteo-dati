@@ -52,6 +52,7 @@ jobs:
           nuova=$(python -c 'import json;print(json.load(open("out/manifest.json"))["run"])')
           echo "corsa prodotta: $nuova (precedente: ${{ steps.stato.outputs.precedente }})"
           test -n "$nuova"
+          echo "NUOVA=$nuova" >> "$GITHUB_ENV"
           if [ "$nuova" = "${{ steps.stato.outputs.precedente }}" ]; then
             echo "::notice::corsa gia' online, niente da pubblicare"
             echo "SALTA=1" >> "$GITHUB_ENV"
@@ -71,22 +72,29 @@ jobs:
           git commit -q -m "dati $(python -c 'import json;print(json.load(open("manifest.json"))["run"])')"
           git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
 
+      # Il controllo deve leggere LA CORSA APPENA PUBBLICATA, non "un manifest qualsiasi":
+      # il 16/09 diceva "online: 25 passi della corsa 2026091606" mentre aveva appena
+      # spedito la 2026091612 (Pages non aveva ancora ricostruito) e passava lo stesso.
       - name: Prova che i dati pubblicati si leggano
         if: env.SALTA != '1'
         run: |
-          for tentativo in 1 2 3 4 5 6 7 8; do
+          for tentativo in $(seq 1 15); do
             sleep 20
-            if curl -sf "https://alex12345-dot.github.io/colonnello-meteo-dati/manifest.json" -o letto.json; then
-              python - <<'PY'
-          import json
+            if curl -sf "https://alex12345-dot.github.io/colonnello-meteo-dati/manifest.json" -o letto.json \
+               && python - <<'PY'
+          import json, os, sys
           m = json.load(open("letto.json"))
+          if m.get("run") != os.environ["NUOVA"]:
+              print("Pages serve ancora la corsa", m.get("run"), "attesa", os.environ["NUOVA"])
+              sys.exit(3)
           assert m["steps"], "manifest senza passi"
           assert m["grid"]["lon0"] == -180.0, "origine della griglia non dichiarata"
           print("online:", len(m["steps"]), "passi della corsa", m["run"])
           PY
+            then
               exit 0
             fi
             echo "Pages non ancora aggiornato, ritento ($tentativo)"
           done
-          echo "::error::i dati non sono leggibili da Pages dopo il caricamento"
+          echo "::error::la corsa $NUOVA non e' leggibile da Pages dopo 5 minuti"
           exit 1
