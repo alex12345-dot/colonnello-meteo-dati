@@ -4,6 +4,7 @@ from urllib.error import HTTPError, URLError
 import pytest
 
 from pipeline.source_ecmwf import (
+    MAX_BACKOFF_SECONDS,
     ECMWFSource,
     NetworkError,
     RunNotAvailable,
@@ -59,9 +60,10 @@ def test_network_error_retries_and_stays_distinct():
     assert len(calls) == 3
 
 
-def test_503_slow_down_backs_off_for_minutes_not_seconds():
-    # Il bucket ECMWF risponde "503 Slow Down" a raffica: con 3 tentativi da 0,5 s il giro
-    # moriva (15/09/2026). Di default si insiste piu' a lungo e con attese crescenti.
+def test_503_slow_down_insiste_molte_volte_con_attese_brevi():
+    # Il "503 Slow Down" del bucket ECMWF colpisce ~55 % delle richieste anche a una al
+    # secondo (misura del 17/09/2026): e' una moneta, non una punizione al nostro ritmo.
+    # Quindi conta il numero di tentativi, e le prime attese devono restare brevi.
     waits = []
     calls = []
 
@@ -72,8 +74,70 @@ def test_503_slow_down_backs_off_for_minutes_not_seconds():
     source = ECMWFSource(opener=throttled, sleeper=waits.append)
     with pytest.raises(NetworkError):
         source.get_index("ifs", "2026091300", 0)
-    assert len(calls) == 6
-    assert waits == [5.0, 10.0, 20.0, 40.0, 60.0]  # cresce, ma mai oltre MAX_WAIT_SECONDS
+    # 0,55^16 = 0,007 % di perdere una richiesta: su ~110 richieste il giro regge.
+    assert len(calls) == 16
+    assert waits[:5] == [0.5, 1.0, 2.0, 4.0, 8.0]
+    assert sum(waits[:5]) <= 16.0  # i primi cinque tentativi entro un quarto di minuto
+    assert max(waits) == MAX_BACKOFF_SECONDS  # nessuna attesa da un minuto senza Retry-After
+
+
+def test_503_ripetuti_finiscono_comunque_in_un_successo():
+    # Il difetto vero del 16-17/09/2026: dodici 503 di fila esaurivano i sei tentativi e
+    # facevano morire il giro su una corsa che c'era. Ora la tredicesima risposta si prende.
+    risposte = []
+
+    class Risposta:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return b'{"param": "2t", "_offset": 0, "_length": 10}'
+
+    def flaky(request, timeout):
+        risposte.append(request.full_url)
+        if len(risposte) <= 12:
+            raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+        return Risposta()
+
+    source = ECMWFSource(opener=flaky, sleeper=lambda _: None)
+    assert source.get_index("ifs", "2026091300", 0)[0]["param"] == "2t"
+    assert len(risposte) == 13
+
+
+def test_budget_temporale_interrompe_i_tentativi_lenti():
+    # Una sequenza di timeout non deve moltiplicare 16 volte il timeout di rete e consumare
+    # il job intero. Il secondo tentativo riceve soltanto il tempo ancora disponibile.
+    elapsed = [0.0]
+    timeouts = []
+
+    def clock():
+        return elapsed[0]
+
+    def slow_timeout(request, timeout):
+        timeouts.append(timeout)
+        elapsed[0] += timeout
+        raise TimeoutError("rete lenta")
+
+    def sleep(seconds):
+        elapsed[0] += seconds
+
+    source = ECMWFSource(
+        opener=slow_timeout,
+        sleeper=sleep,
+        clock=clock,
+        timeout=30.0,
+        max_elapsed=60.0,
+    )
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 0)
+
+    assert timeouts == [30.0, 29.5]
+    assert elapsed[0] == 60.0
 
 
 def test_permanent_http_errors_are_not_retried():

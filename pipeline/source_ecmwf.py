@@ -20,6 +20,19 @@ TRANSIENT_STATUS = frozenset({408, 429, 500, 502, 503, 504})
 # Tetto a ogni singola attesa: ne' un Retry-After ostile ne' il backoff possono bloccare
 # il job per l'intero timeout del workflow (rilievo Codex 15/09/2026).
 MAX_WAIT_SECONDS = 60.0
+# Il "503 Slow Down" del bucket ECMWF NON e' una punizione al nostro ritmo: il 17/09/2026,
+# da una linea domestica e con una richiesta al secondo, 11 sonde su 20 sono tornate 503 e
+# quella subito successiva 206. E' throttling globale sull'oggetto appena pubblicato, e si
+# comporta come una moneta: cio' che conta e' il NUMERO di tentativi, non la loro distanza.
+# Con sei tentativi la probabilita' di perdere una singola richiesta era 0,55^6 = 2,8 %, che
+# su ~110 richieste per giro fa fallire il giro nel 96 % dei casi (tre run perse il 16-17/09).
+# Quindi: molti tentativi, attese brevi all'inizio e mai oltre MAX_BACKOFF_SECONDS. Le attese
+# lunghe restano solo per un Retry-After esplicito, che il server manda quando e' davvero giu'.
+MAX_BACKOFF_SECONDS = 15.0
+# Budget complessivo di una singola richiesta, inclusi timeout e attese. Deve superare i
+# 165,5 s di backoff dei 16 tentativi rapidi su 503, ma impedire che 16 timeout da 30 s
+# monopolizzino il workflow per oltre dieci minuti.
+MAX_REQUEST_SECONDS = 240.0
 MODEL_PATHS = {"ifs": "ifs", "aifs": "aifs-single", "aifs-single": "aifs-single"}
 
 
@@ -147,26 +160,36 @@ class ECMWFSource:
     def __init__(
         self,
         *,
-        attempts: int = 6,
-        backoff: float = 5.0,
+        attempts: int = 16,
+        backoff: float = 0.5,
         timeout: float = 30.0,
+        max_elapsed: float = MAX_REQUEST_SECONDS,
         opener: Callable = urlopen,
         sleeper: Callable[[float], None] = time.sleep,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.attempts = attempts
         self.backoff = backoff
         self.timeout = timeout
+        self.max_elapsed = max_elapsed
         self.opener = opener
         self.sleeper = sleeper
+        self.clock = clock
         self._index_cache: dict[str, list[dict]] = {}
 
     def _request(self, url: str, headers: dict[str, str] | None = None) -> bytes:
         request = Request(url, headers=headers or {})
         last_error: BaseException | None = None
+        started = self.clock()
+        attempts_made = 0
         for attempt in range(self.attempts):
-            wait = min(self.backoff * (2**attempt), MAX_WAIT_SECONDS)
+            remaining = self.max_elapsed - (self.clock() - started)
+            if remaining <= 0:
+                break
+            wait = min(self.backoff * (2**attempt), MAX_BACKOFF_SECONDS)
+            attempts_made = attempt + 1
             try:
-                with self.opener(request, timeout=self.timeout) as response:
+                with self.opener(request, timeout=min(self.timeout, remaining)) as response:
                     status = getattr(response, "status", None)
                     if headers and "Range" in headers and status == 200:
                         raise RangeNotHonored(f"server senza byte-range: {url}")
@@ -177,9 +200,9 @@ class ECMWFSource:
                 if exc.code not in TRANSIENT_STATUS:
                     raise NetworkError(f"HTTP {exc.code} non ritentabile: {url}") from exc
                 last_error = exc
-                # S3 risponde "503 Slow Down" quando si e' troppo veloci (15/09/2026: tre
-                # giri di fila persi con 3 tentativi e attese di 0,5 e 1 s). Il ritmo lo
-                # detta il server: si rispetta Retry-After se c'e', altrimenti si rallenta.
+                # Il 503 arriva anche alla prima richiesta di una sessione (misurato: 55 % di
+                # 503 a una richiesta al secondo), quindi si insiste subito; se il server
+                # manda un Retry-After e' lui a dire quanto aspettare e quello vince.
                 retry_after = _retry_after_seconds(exc)
                 if retry_after is not None:
                     wait = max(retry_after, wait)
@@ -188,9 +211,10 @@ class ECMWFSource:
             except (URLError, TimeoutError, OSError, HTTPException) as exc:
                 # HTTPException copre IncompleteRead: connessione caduta a meta' payload.
                 last_error = exc
-            if attempt + 1 < self.attempts:
-                self.sleeper(wait)
-        raise NetworkError(f"richiesta fallita dopo {self.attempts} tentativi: {url}") from last_error
+            remaining = self.max_elapsed - (self.clock() - started)
+            if attempt + 1 < self.attempts and remaining > 0:
+                self.sleeper(min(wait, remaining))
+        raise NetworkError(f"richiesta fallita dopo {attempts_made} tentativi: {url}") from last_error
 
     def get_index(self, model: str, run: str | datetime, step: int) -> list[dict]:
         url = forecast_url(model, run, step, "index")
@@ -263,4 +287,3 @@ class ECMWFSource:
 
 
 build_range_header = range_header
-
