@@ -24,9 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -43,9 +43,20 @@ jobs:
 
       - name: Costruisci i livelli
         run: |
-          python pipeline/build.py --model ifs --run latest \
-            --steps "${{ inputs.passi || '0-72' }}" \
-            --layers wind10m,t2m,precip --out out/
+          costruisci() {
+            python pipeline/build.py --model ifs --run latest \
+              --steps "${{ inputs.passi || '0-72' }}" \
+              --layers wind10m,t2m,precip --out out/
+          }
+          # Il failover fra i mirror copre il 503 su un host solo; se lo stesso oggetto cade su
+          # entrambi si aspetta e si ricomincia UNA volta (lo strozzamento dura minuti, non ore).
+          # Il secondo fallimento fa fallire il passo davvero: niente verde a vuoto.
+          if ! costruisci; then
+            echo "::warning::prima passata fallita, pausa di 300 s e secondo tentativo"
+            rm -rf out
+            sleep 300
+            costruisci
+          fi
 
       - name: La corsa deve essere nuova
         run: |

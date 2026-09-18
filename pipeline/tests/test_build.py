@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pipeline.build as build_module
 from pipeline.build import build, parse_steps
 from pipeline.grib2 import iter_messages
 
@@ -35,6 +36,24 @@ def test_offline_build_writes_layers_and_manifest(tmp_path):
     assert set(manifest["steps"][0]["layers"]) == {"wind10m", "t2m", "precip"}
     assert (tmp_path / "manifest.json").is_file()
     assert (tmp_path / "wind10m" / "012.png").is_file()
+
+
+def test_build_reports_each_completed_step_only_on_stderr(tmp_path, capsys, monkeypatch):
+    instants = iter((10.0, 11.25))
+    monkeypatch.setattr(build_module, "monotonic", lambda: next(instants), raising=False)
+
+    build(
+        "ifs",
+        "2026091300",
+        "12",
+        "wind10m,t2m,precip",
+        tmp_path,
+        source=OfflineSource(),
+    )
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "passo 12 completato in 1.25 s\n"
 
 
 

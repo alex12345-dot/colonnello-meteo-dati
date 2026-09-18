@@ -6,6 +6,8 @@ import argparse
 from datetime import timedelta
 import json
 from pathlib import Path
+import sys
+from time import monotonic
 
 try:
     from pipeline.encode import encode_scalar, encode_wind
@@ -96,6 +98,7 @@ def build(
     grid_meta = None
     warnings = []
     for step in steps:
+        step_started = monotonic()
         payloads, absent = source.download_parameters(
             model, run_time, step, parameters, optional=optional
         )
@@ -135,6 +138,10 @@ def build(
                 "valid_time": valid_time.isoformat(timespec="seconds").replace("+00:00", "Z"),
                 "layers": layer_entries,
             }
+        )
+        print(
+            f"passo {step} completato in {monotonic() - step_started:.2f} s",
+            file=sys.stderr,
         )
 
     manifest = {

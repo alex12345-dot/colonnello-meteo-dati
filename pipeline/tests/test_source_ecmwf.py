@@ -16,6 +16,10 @@ from pipeline.source_ecmwf import (
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
+MIRROR_URLS = (
+    "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com",
+    "https://data.ecmwf.int/forecasts",
+)
 
 
 def test_index_parsing_and_range_headers():
@@ -38,12 +42,84 @@ def test_forecast_url_matches_public_bucket_layout():
 
 
 def test_404_is_run_not_available_without_becoming_network_error():
+    calls = []
+
     def missing(request, timeout):
+        calls.append(request.full_url)
         raise HTTPError(request.full_url, 404, "missing", {}, None)
 
     source = ECMWFSource(opener=missing, sleeper=lambda _: None)
     with pytest.raises(RunNotAvailable):
         source.get_index("ifs", "2026091300", 12)
+    path = "/20260913/00z/ifs/0p25/oper/20260913000000-12h-oper-fc.index"
+    assert calls == [
+        f"{host}{path}" for host in MIRROR_URLS
+    ]
+
+
+def test_404_on_one_mirror_can_succeed_on_the_other():
+    calls = []
+
+    def delayed_replication(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) == 1:
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        return _index_ok()
+
+    source = ECMWFSource(opener=delayed_replication, sleeper=lambda _: None)
+    assert source.get_index("ifs", "2026091300", 12)
+    assert calls[0].startswith(MIRROR_URLS[0])
+    assert calls[1].startswith(MIRROR_URLS[1])
+
+
+def test_503_on_first_mirror_rotates_to_second_and_succeeds(capsys):
+    calls = []
+    waits = []
+
+    def throttled_once(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) == 1:
+            raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+        return _index_ok()
+
+    source = ECMWFSource(opener=throttled_once, sleeper=waits.append)
+    assert source.get_index("ifs", "2026091300", 12)
+    assert calls[0].startswith(MIRROR_URLS[0])
+    assert calls[1].startswith(MIRROR_URLS[1])
+    assert waits == [0.5]
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert MIRROR_URLS[0] in captured.err
+    assert "stato=503" in captured.err
+    assert "tentativo=1" in captured.err
+    assert "attesa=0.5" in captured.err
+
+
+def test_transient_failures_rotate_mirrors_on_every_attempt():
+    calls = []
+
+    def throttled(request, timeout):
+        calls.append(request.full_url)
+        raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+
+    source = ECMWFSource(attempts=3, opener=throttled, sleeper=lambda _: None)
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 12)
+    assert [url.startswith(MIRROR_URLS[0]) for url in calls] == [True, False, True]
+
+
+def test_network_exception_is_reported_on_stderr(capsys):
+    def offline(request, timeout):
+        raise URLError("offline reale")
+
+    source = ECMWFSource(attempts=1, opener=offline, sleeper=lambda _: None)
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 12)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "URLError" in captured.err
+    assert "offline reale" in captured.err
+    assert "tentativo=1" in captured.err
 
 
 def test_network_error_retries_and_stays_distinct():
@@ -251,12 +327,13 @@ def _index_ok():
 
 def test_latest_run_stops_at_the_first_published_run():
     # 16/09/2026: la sonda chiedeva tutte le 12 candidate e un 503 sulla decima
-    # buttava via la corsa buona gia' trovata. Ora: una 404, una 200, stop.
+    # buttava via la corsa buona gia' trovata. Ora: entrambi i mirror confermano
+    # la 404 della prima candidata, poi la seconda candidata risponde 200 e si ferma.
     calls = []
 
     def opener(request, timeout):
         calls.append(request.full_url)
-        if len(calls) == 1:
+        if len(calls) <= 2:
             raise HTTPError(request.full_url, 404, "Not Found", {}, None)
         return _index_ok()
 
@@ -264,7 +341,7 @@ def test_latest_run_stops_at_the_first_published_run():
     source = ECMWFSource(opener=opener, sleeper=lambda _: None)
     run = source.latest_run("ifs", now=datetime(2026, 9, 16, 18, 30, tzinfo=timezone.utc))
     assert run == datetime(2026, 9, 16, 12, tzinfo=timezone.utc)
-    assert len(calls) == 2
+    assert len(calls) == 3
 
 
 def test_available_runs_keeps_newer_runs_when_an_older_one_is_throttled():

@@ -7,6 +7,7 @@ from email.utils import parsedate_to_datetime
 from http.client import HTTPException
 import json
 import math
+import sys
 import time
 from typing import Callable, Iterable
 from urllib.error import HTTPError, URLError
@@ -14,6 +15,10 @@ from urllib.request import Request, urlopen
 
 
 BASE_URL = "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com"
+MIRROR_URLS = (
+    BASE_URL,
+    "https://data.ecmwf.int/forecasts",
+)
 # Stati HTTP che vale la pena ritentare: throttling e guasti momentanei. Un 403 o un 400
 # non cambia riprovando, e sei attese sarebbero solo tempo perso.
 TRANSIENT_STATUS = frozenset({408, 429, 500, 502, 503, 504})
@@ -77,7 +82,7 @@ def candidate_runs(now: datetime | None = None, count: int = 12) -> list[datetim
     return [current - timedelta(hours=6 * index) for index in range(count)]
 
 
-def forecast_url(model: str, run: str | datetime, step: int, extension: str) -> str:
+def forecast_path(model: str, run: str | datetime, step: int, extension: str) -> str:
     try:
         model_path = MODEL_PATHS[model]
     except KeyError as exc:
@@ -86,7 +91,11 @@ def forecast_url(model: str, run: str | datetime, step: int, extension: str) -> 
     date = stamp.strftime("%Y%m%d")
     cycle = stamp.strftime("%H")
     filename = f"{date}{cycle}0000-{step}h-oper-fc.{extension}"
-    return f"{BASE_URL}/{date}/{cycle}z/{model_path}/0p25/oper/{filename}"
+    return f"/{date}/{cycle}z/{model_path}/0p25/oper/{filename}"
+
+
+def forecast_url(model: str, run: str | datetime, step: int, extension: str) -> str:
+    return f"{BASE_URL}{forecast_path(model, run, step, extension)}"
 
 
 def parse_index(text: str | bytes) -> list[dict]:
@@ -177,15 +186,19 @@ class ECMWFSource:
         self.clock = clock
         self._index_cache: dict[str, list[dict]] = {}
 
-    def _request(self, url: str, headers: dict[str, str] | None = None) -> bytes:
-        request = Request(url, headers=headers or {})
+    def _request(self, path: str, headers: dict[str, str] | None = None) -> bytes:
         last_error: BaseException | None = None
         started = self.clock()
         attempts_made = 0
+        mirrors = list(MIRROR_URLS)
+        mirror_index = 0
         for attempt in range(self.attempts):
             remaining = self.max_elapsed - (self.clock() - started)
-            if remaining <= 0:
+            if remaining <= 0 or not mirrors:
                 break
+            host = mirrors[mirror_index]
+            url = f"{host}{path}"
+            request = Request(url, headers=headers or {})
             wait = min(self.backoff * (2**attempt), MAX_BACKOFF_SECONDS)
             attempts_made = attempt + 1
             try:
@@ -196,8 +209,23 @@ class ECMWFSource:
                     return response.read()
             except HTTPError as exc:
                 if exc.code == 404:
-                    raise RunNotAvailable(url) from exc
+                    last_error = exc
+                    mirrors.pop(mirror_index)
+                    print(
+                        f"ECMWF host={host} stato={exc.code} {exc.reason} "
+                        f"tentativo={attempts_made} attesa=0s",
+                        file=sys.stderr,
+                    )
+                    if not mirrors:
+                        raise RunNotAvailable(path) from exc
+                    mirror_index %= len(mirrors)
+                    continue
                 if exc.code not in TRANSIENT_STATUS:
+                    print(
+                        f"ECMWF host={host} stato={exc.code} {exc.reason} "
+                        f"tentativo={attempts_made} attesa=0s",
+                        file=sys.stderr,
+                    )
                     raise NetworkError(f"HTTP {exc.code} non ritentabile: {url}") from exc
                 last_error = exc
                 # Il 503 arriva anche alla prima richiesta di una sessione (misurato: 55 % di
@@ -206,25 +234,45 @@ class ECMWFSource:
                 retry_after = _retry_after_seconds(exc)
                 if retry_after is not None:
                     wait = max(retry_after, wait)
-            except RangeNotHonored:
+                observed = f"stato={exc.code} {exc.reason}"
+            except RangeNotHonored as exc:
+                print(
+                    f"ECMWF host={host} eccezione={type(exc).__name__}: {exc} "
+                    f"tentativo={attempts_made} attesa=0s",
+                    file=sys.stderr,
+                )
                 raise
             except (URLError, TimeoutError, OSError, HTTPException) as exc:
                 # HTTPException copre IncompleteRead: connessione caduta a meta' payload.
                 last_error = exc
+                observed = f"eccezione={type(exc).__name__}: {exc}"
             remaining = self.max_elapsed - (self.clock() - started)
-            if attempt + 1 < self.attempts and remaining > 0:
-                self.sleeper(min(wait, remaining))
-        raise NetworkError(f"richiesta fallita dopo {attempts_made} tentativi: {url}") from last_error
+            chosen_wait = (
+                min(wait, remaining)
+                if attempt + 1 < self.attempts and remaining > 0
+                else 0.0
+            )
+            print(
+                f"ECMWF host={host} {observed} tentativo={attempts_made} "
+                f"attesa={chosen_wait:g}s",
+                file=sys.stderr,
+            )
+            mirror_index = (mirror_index + 1) % len(mirrors)
+            if chosen_wait > 0:
+                self.sleeper(chosen_wait)
+        raise NetworkError(
+            f"richiesta fallita dopo {attempts_made} tentativi: {path}"
+        ) from last_error
 
     def get_index(self, model: str, run: str | datetime, step: int) -> list[dict]:
-        url = forecast_url(model, run, step, "index")
-        if url not in self._index_cache:
-            self._index_cache[url] = parse_index(self._request(url))
-        return self._index_cache[url]
+        path = forecast_path(model, run, step, "index")
+        if path not in self._index_cache:
+            self._index_cache[path] = parse_index(self._request(path))
+        return self._index_cache[path]
 
     def download_entry(self, model: str, run: str | datetime, step: int, entry: dict) -> bytes:
-        url = forecast_url(model, run, step, "grib2")
-        payload = self._request(url, range_header(entry))
+        path = forecast_path(model, run, step, "grib2")
+        payload = self._request(path, range_header(entry))
         expected = int(entry["_length"])
         if len(payload) != expected:
             raise NetworkError(f"byte-range incompleto: attesi {expected}, ricevuti {len(payload)}")
