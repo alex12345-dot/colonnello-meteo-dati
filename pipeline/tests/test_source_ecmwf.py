@@ -72,6 +72,33 @@ def test_404_on_one_mirror_can_succeed_on_the_other():
     assert calls[1].startswith(MIRROR_URLS[1])
 
 
+def test_attempts_one_404_on_all_mirrors_is_run_not_available():
+    calls = []
+
+    def missing(request, timeout):
+        calls.append(request.full_url)
+        raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+
+    source = ECMWFSource(attempts=1, opener=missing, sleeper=lambda _: None)
+    with pytest.raises(RunNotAvailable):
+        source.get_index("ifs", "2026091300", 12)
+    assert [url.startswith(MIRROR_URLS[0]) for url in calls] == [True, False]
+
+
+def test_attempts_one_404_on_first_mirror_can_succeed_on_second():
+    calls = []
+
+    def delayed_replication(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        return _index_ok()
+
+    source = ECMWFSource(attempts=1, opener=delayed_replication, sleeper=lambda _: None)
+    assert source.get_index("ifs", "2026091300", 12)
+    assert [url.startswith(MIRROR_URLS[0]) for url in calls] == [True, False]
+
+
 def test_503_on_first_mirror_rotates_to_second_and_succeeds(capsys):
     calls = []
     waits = []
@@ -134,6 +161,81 @@ def test_network_error_retries_and_stays_distinct():
         source.get_index("ifs", "2026091300", 12)
     assert not isinstance(raised.value, RunNotAvailable)
     assert len(calls) == 3
+
+
+def test_connection_failures_exclude_host_across_requests(capsys):
+    calls = []
+
+    def first_mirror_offline(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            raise TimeoutError("mirror irraggiungibile")
+        return _index_ok()
+
+    source = ECMWFSource(opener=first_mirror_offline, sleeper=lambda _: None)
+    source.get_index("ifs", "2026091300", 12)
+    source.get_index("ifs", "2026091306", 12)
+    source.get_index("ifs", "2026091312", 12)
+
+    assert [url.startswith(MIRROR_URLS[0]) for url in calls] == [
+        True,
+        False,
+        True,
+        False,
+        False,
+    ]
+    captured = capsys.readouterr()
+    assert captured.err.count(f"ECMWF host={MIRROR_URLS[0]} escluso") == 1
+    assert "errori_connessione=2" in captured.err
+
+
+def test_transient_http_errors_do_not_exclude_host():
+    calls = []
+
+    def throttled_primary_offline_secondary(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+        raise TimeoutError("mirror irraggiungibile")
+
+    source = ECMWFSource(
+        attempts=6,
+        opener=throttled_primary_offline_secondary,
+        sleeper=lambda _: None,
+    )
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 12)
+
+    assert [url.startswith(MIRROR_URLS[0]) for url in calls] == [
+        True,
+        False,
+        True,
+        False,
+        True,
+        True,
+    ]
+
+
+def test_all_excluded_hosts_reset_connection_failures():
+    calls = []
+
+    def offline(request, timeout):
+        calls.append(request.full_url)
+        raise TimeoutError("mirror irraggiungibile")
+
+    source = ECMWFSource(attempts=5, opener=offline, sleeper=lambda _: None)
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 12)
+
+    assert [url.startswith(MIRROR_URLS[0]) for url in calls] == [
+        True,
+        False,
+        True,
+        False,
+        True,
+    ]
+    assert source._connection_failures == {MIRROR_URLS[0]: 1}
+    assert source._excluded_hosts == set()
 
 
 def test_503_slow_down_insiste_molte_volte_con_attese_brevi():
@@ -358,3 +460,187 @@ def test_available_runs_keeps_newer_runs_when_an_older_one_is_throttled():
     runs = source.available_runs("ifs", now=datetime(2026, 9, 16, 18, 30, tzinfo=timezone.utc))
     assert len(runs) == 2
     assert len(calls) == 4  # due riuscite + due tentativi della terza, poi stop
+
+
+def test_un_host_escluso_non_rende_la_corsa_assente():
+    # Rilievo [P1] della review del 18/09/2026: un mirror che dice 404 e l'altro che va in
+    # timeout NON provano che la corsa manchi. Se qui tornasse RunNotAvailable, latest_run
+    # scivolerebbe silenziosamente su una corsa piu' vecchia e l'app resterebbe con dati
+    # vecchi invece di far fallire il giro.
+    def primo_assente_secondo_irraggiungibile(request, timeout):
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        raise TimeoutError("mirror irraggiungibile")
+
+    source = ECMWFSource(
+        attempts=6, opener=primo_assente_secondo_irraggiungibile, sleeper=lambda _: None
+    )
+    with pytest.raises(NetworkError) as raised:
+        source.get_index("ifs", "2026091300", 12)
+    assert not isinstance(raised.value, RunNotAvailable)
+
+
+def test_una_risposta_riuscita_azzera_i_fallimenti_di_connessione():
+    # Rilievo [P2]: i fallimenti vanno contati consecutivi. Due timeout separati da decine di
+    # richieste riuscite non sono un host guasto, e escluderlo toglie failover proprio mentre
+    # si scaricano i cento oggetti del giro.
+    calls = []
+    # Esiti programmati del primo host, nell'ordine in cui viene interrogato: un intoppo,
+    # poi due risposte buone, poi un secondo intoppo molto piu' tardi.
+    esiti_host0 = iter([False, True, True, False, True])
+
+    def guasto_isolato(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]) and not next(esiti_host0):
+            raise TimeoutError("intoppo isolato")
+        return _index_ok()
+
+    source = ECMWFSource(opener=guasto_isolato, sleeper=lambda _: None)
+    for ora in ("2026091300", "2026091306", "2026091312", "2026091318", "2026091400"):
+        assert source.get_index("ifs", ora, 12)
+
+    # Due fallimenti separati da richieste riuscite non escludono l'host: l'ultima richiesta
+    # deve ripartire dal primo mirror e ottenere risposta da li'.
+    assert calls[-1].startswith(MIRROR_URLS[0])
+    assert sum(1 for url in calls if url.startswith(MIRROR_URLS[0])) == 5
+
+
+def test_un_host_escluso_che_torna_a_rispondere_rientra_in_rotazione():
+    # Rilievo [P2] della terza review del 18/09/2026: l'esclusione e' un sospetto, non una
+    # condanna. Se l'host escluso viene interrogato come ripiego e risponde, ha dimostrato di
+    # essere tornato: tenerlo fuori lascerebbe il resto del giro senza failover.
+    calls = []
+    stato = {"host0_giu": True, "host1_assente": False}
+
+    def mirror_che_cambiano_stato(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            if stato["host0_giu"]:
+                raise TimeoutError("mirror irraggiungibile")
+            return _index_ok()
+        if stato["host1_assente"]:
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        return _index_ok()
+
+    source = ECMWFSource(opener=mirror_che_cambiano_stato, sleeper=lambda _: None)
+
+    # host0 va in timeout due volte di fila e viene escluso; le corse arrivano da host1.
+    assert source.get_index("ifs", "2026091300", 12)
+    assert source.get_index("ifs", "2026091306", 12)
+    assert MIRROR_URLS[0] in source._excluded_hosts
+
+    # host0 e' tornato e host1 non ha ancora l'oggetto: il ripiego interroga l'escluso,
+    # che risponde e quindi rientra in rotazione.
+    stato["host0_giu"] = False
+    stato["host1_assente"] = True
+    assert source.get_index("ifs", "2026091312", 12)
+    assert MIRROR_URLS[0] not in source._excluded_hosts
+
+    calls.clear()
+    assert source.get_index("ifs", "2026091318", 12)
+    assert calls[0].startswith(MIRROR_URLS[0])
+
+
+def test_host_escluso_rientra_quando_l_unico_attivo_strozza():
+    # Rilievo [P2] della quarta review: se l'unico host attivo risponde 503, l'escluso non
+    # veniva piu' interrogato e si bruciavano tutti i tentativi su un mirror strozzato pur
+    # avendone uno sano.
+    calls = []
+    stato = {"host0_giu": True}
+
+    def host0_giu_poi_su_host1_strozzato(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            if stato["host0_giu"]:
+                raise TimeoutError("mirror irraggiungibile")
+            return _index_ok()
+        raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+
+    source = ECMWFSource(attempts=8, opener=host0_giu_poi_su_host1_strozzato, sleeper=lambda _: None)
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 12)
+    assert MIRROR_URLS[0] in source._excluded_hosts
+
+    stato["host0_giu"] = False
+    calls.clear()
+    assert source.get_index("ifs", "2026091306", 12)
+    assert any(url.startswith(MIRROR_URLS[0]) for url in calls)
+    assert MIRROR_URLS[0] not in source._excluded_hosts
+
+
+def test_una_risposta_http_interrompe_la_sequenza_di_fallimenti():
+    # Rilievo [P2] della quarta review: un 404 o un 503 sono RISPOSTE, quindi provano che
+    # l'host e' raggiungibile. La sequenza timeout, 503, timeout non e' un mirror guasto.
+    esiti = iter(["timeout", "503", "timeout", "ok", "ok", "ok"])
+
+    def host0_alterno(request, timeout):
+        if not request.full_url.startswith(MIRROR_URLS[0]):
+            return _index_ok()
+        esito = next(esiti)
+        if esito == "timeout":
+            raise TimeoutError("intoppo isolato")
+        if esito == "503":
+            raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+        return _index_ok()
+
+    source = ECMWFSource(opener=host0_alterno, sleeper=lambda _: None)
+    for ora in ("2026091300", "2026091306", "2026091312"):
+        assert source.get_index("ifs", ora, 12)
+    assert source._excluded_hosts == set()
+
+
+def test_l_escluso_ha_una_sola_prova_e_non_brucia_tutti_i_tentativi():
+    # Rilievo [P2] della quinta review: con l'unico host attivo che dice 404 e l'escluso in
+    # timeout, il ripiego finale riselezionava l'escluso fino a esaurire 16 tentativi e 240 s.
+    # Grattare lo stesso muro non produce dati: si esce subito con un errore di rete.
+    calls = []
+
+    def host0_giu_host1_assente(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            raise TimeoutError("mirror irraggiungibile")
+        raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+
+    source = ECMWFSource(opener=host0_giu_host1_assente, sleeper=lambda _: None)
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091300", 12)
+    assert MIRROR_URLS[0] in source._excluded_hosts
+
+    calls.clear()
+    with pytest.raises(NetworkError) as raised:
+        source.get_index("ifs", "2026091306", 12)
+    assert not isinstance(raised.value, RunNotAvailable)
+    # host1 dice 404 una volta, host0 ha la sua unica prova: quattro chiamate sono gia' tante.
+    assert len(calls) <= 4
+
+
+def test_una_risposta_503_rimette_in_rotazione_un_host_escluso():
+    # Rilievo [P3] della quinta review: l'esclusione nasce dall'irraggiungibilita'. Un 503 e'
+    # una risposta, quindi l'host e' tornato raggiungibile e deve rientrare.
+    calls = []
+    stato = {"host0_giu": True, "host1_assente": False}
+
+    def host0_giu_poi_strozzato(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            if stato["host0_giu"]:
+                raise TimeoutError("mirror irraggiungibile")
+            raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+        if stato["host1_assente"]:
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        return _index_ok()
+
+    source = ECMWFSource(attempts=4, opener=host0_giu_poi_strozzato, sleeper=lambda _: None)
+    assert source.get_index("ifs", "2026091300", 12)
+    assert source.get_index("ifs", "2026091306", 12)
+    assert MIRROR_URLS[0] in source._excluded_hosts
+
+    # host1 non ha l'oggetto: il ripiego interroga l'escluso, che risponde 503. La richiesta
+    # fallisce, ma host0 ha dimostrato di essere raggiungibile e deve rientrare in rotazione.
+    stato["host0_giu"] = False
+    stato["host1_assente"] = True
+    calls.clear()
+    with pytest.raises(NetworkError):
+        source.get_index("ifs", "2026091312", 12)
+    assert any(url.startswith(MIRROR_URLS[0]) for url in calls)
+    assert MIRROR_URLS[0] not in source._excluded_hosts

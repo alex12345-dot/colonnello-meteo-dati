@@ -185,40 +185,109 @@ class ECMWFSource:
         self.sleeper = sleeper
         self.clock = clock
         self._index_cache: dict[str, list[dict]] = {}
+        self._connection_failures: dict[str, int] = {}
+        self._excluded_hosts: set[str] = set()
+
+    def _record_connection_failure(self, host: str) -> None:
+        count = self._connection_failures.get(host, 0) + 1
+        self._connection_failures[host] = count
+        if count < 2 or host in self._excluded_hosts:
+            return
+        self._excluded_hosts.add(host)
+        print(
+            f"ECMWF host={host} escluso errori_connessione={count}",
+            file=sys.stderr,
+        )
+        if len(self._excluded_hosts) == len(MIRROR_URLS):
+            self._connection_failures.clear()
+            self._excluded_hosts.clear()
 
     def _request(self, path: str, headers: dict[str, str] | None = None) -> bytes:
         last_error: BaseException | None = None
         started = self.clock()
         attempts_made = 0
-        mirrors = list(MIRROR_URLS)
         mirror_index = 0
-        for attempt in range(self.attempts):
+        missing_hosts: set[str] = set()
+        failed_here: set[str] = set()
+        retried_excluded: set[str] = set()
+        retry_attempts = 0
+        while retry_attempts < self.attempts:
             remaining = self.max_elapsed - (self.clock() - started)
-            if remaining <= 0 or not mirrors:
+            if remaining <= 0:
                 break
-            host = mirrors[mirror_index]
+            # Un host escluso e' solo una scorciatoia per non ripagare i suoi timeout alla
+            # PRIMA scelta: non e' una risposta. Appena tutti gli host attivi hanno fallito
+            # qui — 404, strozzatura o guasto — gli esclusi rientrano fra i candidati: uno
+            # puo' essere guarito, e senza di loro "non lo so" diventerebbe "la corsa non
+            # esiste" e latest_run scivolerebbe in silenzio su una corsa vecchia
+            # (rilievi [P1] e [P2] del 18/09/2026).
+            attivi = [
+                host
+                for host in MIRROR_URLS
+                if host not in self._excluded_hosts and host not in missing_hosts
+            ]
+            mirrors = [host for host in attivi if host not in failed_here]
+            if not mirrors:
+                # Gli attivi hanno gia' fallito su questo oggetto: si concede UNA prova per
+                # richiesta a un host escluso, che nel frattempo puo' essere guarito. Una
+                # sola, altrimenti si ripaga il suo timeout a ogni giro (rilievo [P2] della
+                # seconda review, contro quello della quarta: questo e' il compromesso).
+                mirrors = [
+                    host
+                    for host in MIRROR_URLS
+                    if host not in missing_hosts
+                    and host in self._excluded_hosts
+                    and host not in retried_excluded
+                    and host not in failed_here
+                ] or attivi
+            if not mirrors:
+                # Nessun host ancora utile: gli attivi hanno gia' fallito e l'escluso ha
+                # avuto la sua prova. Insistere sarebbe grattare lo stesso muro per 240 s.
+                if all(candidate in missing_hosts for candidate in MIRROR_URLS):
+                    raise RunNotAvailable(path) from last_error
+                break
+            host = mirrors[mirror_index % len(mirrors)]
+            if host in self._excluded_hosts:
+                retried_excluded.add(host)
             url = f"{host}{path}"
             request = Request(url, headers=headers or {})
-            wait = min(self.backoff * (2**attempt), MAX_BACKOFF_SECONDS)
-            attempts_made = attempt + 1
+            wait = min(self.backoff * (2**retry_attempts), MAX_BACKOFF_SECONDS)
+            attempts_made += 1
             try:
                 with self.opener(request, timeout=min(self.timeout, remaining)) as response:
                     status = getattr(response, "status", None)
                     if headers and "Range" in headers and status == 200:
                         raise RangeNotHonored(f"server senza byte-range: {url}")
-                    return response.read()
+                    payload = response.read()
+                    # I fallimenti che escludono un host vanno contati CONSECUTIVI: un giro
+                    # scarica oltre cento oggetti e due intoppi isolati a distanza di minuti
+                    # non sono un mirror guasto (rilievo [P2] del 18/09/2026).
+                    # L'esclusione e' un sospetto, non una condanna: un host che risponde ha
+                    # dimostrato di essere tornato e rientra in rotazione.
+                    self._connection_failures.pop(host, None)
+                    self._excluded_hosts.discard(host)
+                    return payload
             except HTTPError as exc:
+                # Una risposta HTTP, anche 404 o 503, prova che l'host e' raggiungibile:
+                # interrompe la sequenza di fallimenti di connessione (rilievo [P2] del
+                # 18/09/2026), che contano solo consecutivi, e lo rimette in rotazione —
+                # era escluso perche' irraggiungibile, e non lo e' piu'.
+                self._connection_failures.pop(host, None)
+                self._excluded_hosts.discard(host)
+                failed_here.add(host)
                 if exc.code == 404:
                     last_error = exc
-                    mirrors.pop(mirror_index)
+                    missing_hosts.add(host)
                     print(
                         f"ECMWF host={host} stato={exc.code} {exc.reason} "
                         f"tentativo={attempts_made} attesa=0s",
                         file=sys.stderr,
                     )
-                    if not mirrors:
+                    # La corsa e' assente solo se lo dicono TUTTI i mirror: un host escluso
+                    # non ha detto niente.
+                    if all(candidate in missing_hosts for candidate in MIRROR_URLS):
                         raise RunNotAvailable(path) from exc
-                    mirror_index %= len(mirrors)
+                    mirror_index += 1
                     continue
                 if exc.code not in TRANSIENT_STATUS:
                     print(
@@ -246,10 +315,13 @@ class ECMWFSource:
                 # HTTPException copre IncompleteRead: connessione caduta a meta' payload.
                 last_error = exc
                 observed = f"eccezione={type(exc).__name__}: {exc}"
+                failed_here.add(host)
+                self._record_connection_failure(host)
+            retry_attempts += 1
             remaining = self.max_elapsed - (self.clock() - started)
             chosen_wait = (
                 min(wait, remaining)
-                if attempt + 1 < self.attempts and remaining > 0
+                if retry_attempts < self.attempts and remaining > 0
                 else 0.0
             )
             print(
@@ -257,7 +329,7 @@ class ECMWFSource:
                 f"attesa={chosen_wait:g}s",
                 file=sys.stderr,
             )
-            mirror_index = (mirror_index + 1) % len(mirrors)
+            mirror_index += 1
             if chosen_wait > 0:
                 self.sleeper(chosen_wait)
         raise NetworkError(
