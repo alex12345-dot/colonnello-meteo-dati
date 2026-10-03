@@ -1,0 +1,1048 @@
+{
+  "model": "ifs",
+  "run": "2026100312",
+  "grid": {
+    "width": 1440,
+    "height": 721,
+    "lat0": 90.0,
+    "lon0": -180.0,
+    "dlat": 0.25,
+    "dlon": 0.25,
+    "scanning_mode": 0
+  },
+  "layers": [
+    "wind10m",
+    "t2m",
+    "precip"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "valid_time": "2026-10-03T12:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/000.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -26.5103759765625,
+            -24.707443237304688
+          ],
+          "max": [
+            29.1302490234375,
+            26.901931762695312
+          ],
+          "quantization_step": [
+            0.2181985294117647,
+            0.20238970588235294
+          ]
+        },
+        "t2m": {
+          "url": "t2m/000.png",
+          "encoding": "grayscale8",
+          "min": 204.89224243164062,
+          "max": 317.3297424316406,
+          "quantization_step": 0.4409313725490196
+        },
+        "precip": {
+          "url": "precip/000.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0,
+          "quantization_step": 0.0
+        }
+      }
+    },
+    {
+      "step": 3,
+      "valid_time": "2026-10-03T15:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/003.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -26.2728271484375,
+            -26.763427734375
+          ],
+          "max": [
+            27.5240478515625,
+            26.720947265625
+          ],
+          "quantization_step": [
+            0.21096813725490196,
+            0.20974264705882353
+          ]
+        },
+        "t2m": {
+          "url": "t2m/003.png",
+          "encoding": "grayscale8",
+          "min": 203.3973846435547,
+          "max": 314.7098846435547,
+          "quantization_step": 0.43651960784313726
+        },
+        "precip": {
+          "url": "precip/003.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.09547233581542969,
+          "quantization_step": 0.00037440131692325365
+        }
+      }
+    },
+    {
+      "step": 6,
+      "valid_time": "2026-10-03T18:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/006.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -26.314254760742188,
+            -23.413543701171875
+          ],
+          "max": [
+            26.529495239257812,
+            24.414581298828125
+          ],
+          "quantization_step": [
+            0.20723039215686276,
+            0.18756127450980392
+          ]
+        },
+        "t2m": {
+          "url": "t2m/006.png",
+          "encoding": "grayscale8",
+          "min": 203.01083374023438,
+          "max": 313.1670837402344,
+          "quantization_step": 0.4319852941176471
+        },
+        "precip": {
+          "url": "precip/006.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.138458251953125,
+          "quantization_step": 0.0005429735370710785
+        }
+      }
+    },
+    {
+      "step": 9,
+      "valid_time": "2026-10-03T21:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/009.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -29.395660400390625,
+            -23.547622680664062
+          ],
+          "max": [
+            26.479339599609375,
+            28.124252319335938
+          ],
+          "quantization_step": [
+            0.21911764705882353,
+            0.20263480392156863
+          ]
+        },
+        "t2m": {
+          "url": "t2m/009.png",
+          "encoding": "grayscale8",
+          "min": 202.59521484375,
+          "max": 313.12646484375,
+          "quantization_step": 0.4334558823529412
+        },
+        "precip": {
+          "url": "precip/009.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.16710281372070312,
+          "quantization_step": 0.0006553051518458946
+        }
+      }
+    },
+    {
+      "step": 12,
+      "valid_time": "2026-10-04T00:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/012.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -26.343154907226562,
+            -25.030166625976562
+          ],
+          "max": [
+            25.094345092773438,
+            26.297958374023438
+          ],
+          "quantization_step": [
+            0.2017156862745098,
+            0.20128676470588236
+          ]
+        },
+        "t2m": {
+          "url": "t2m/012.png",
+          "encoding": "grayscale8",
+          "min": 202.3680877685547,
+          "max": 313.1805877685547,
+          "quantization_step": 0.4345588235294118
+        },
+        "precip": {
+          "url": "precip/012.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.18479156494140625,
+          "quantization_step": 0.0007246728036917892
+        }
+      }
+    },
+    {
+      "step": 15,
+      "valid_time": "2026-10-04T03:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/015.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -29.201126098632812,
+            -27.657806396484375
+          ],
+          "max": [
+            26.517623901367188,
+            29.717193603515625
+          ],
+          "quantization_step": [
+            0.21850490196078431,
+            0.225
+          ]
+        },
+        "t2m": {
+          "url": "t2m/015.png",
+          "encoding": "grayscale8",
+          "min": 205.111328125,
+          "max": 310.486328125,
+          "quantization_step": 0.41323529411764703
+        },
+        "precip": {
+          "url": "precip/015.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.18896865844726562,
+          "quantization_step": 0.0007410535625382965
+        }
+      }
+    },
+    {
+      "step": 18,
+      "valid_time": "2026-10-04T06:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/018.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -28.098388671875,
+            -26.603607177734375
+          ],
+          "max": [
+            25.432861328125,
+            29.583892822265625
+          ],
+          "quantization_step": [
+            0.2099264705882353,
+            0.22034313725490196
+          ]
+        },
+        "t2m": {
+          "url": "t2m/018.png",
+          "encoding": "grayscale8",
+          "min": 207.01608276367188,
+          "max": 312.8910827636719,
+          "quantization_step": 0.4151960784313726
+        },
+        "precip": {
+          "url": "precip/018.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.19153213500976562,
+          "quantization_step": 0.0007511064118030025
+        }
+      }
+    },
+    {
+      "step": 21,
+      "valid_time": "2026-10-04T09:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/021.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -30.270538330078125,
+            -34.42939758300781
+          ],
+          "max": [
+            25.713836669921875,
+            31.758102416992188
+          ],
+          "quantization_step": [
+            0.21954656862745098,
+            0.2595588235294118
+          ]
+        },
+        "t2m": {
+          "url": "t2m/021.png",
+          "encoding": "grayscale8",
+          "min": 208.01373291015625,
+          "max": 316.51373291015625,
+          "quantization_step": 0.42549019607843136
+        },
+        "precip": {
+          "url": "precip/021.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.21162033081054688,
+          "quantization_step": 0.0008298836502374388
+        }
+      }
+    },
+    {
+      "step": 24,
+      "valid_time": "2026-10-04T12:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/024.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -28.141525268554688,
+            -30.257583618164062
+          ],
+          "max": [
+            27.045974731445312,
+            39.67991638183594
+          ],
+          "quantization_step": [
+            0.216421568627451,
+            0.27426470588235297
+          ]
+        },
+        "t2m": {
+          "url": "t2m/024.png",
+          "encoding": "grayscale8",
+          "min": 206.86904907226562,
+          "max": 316.8065490722656,
+          "quantization_step": 0.4311274509803922
+        },
+        "precip": {
+          "url": "precip/024.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.27022552490234375,
+          "quantization_step": 0.001059707940793505
+        }
+      }
+    },
+    {
+      "step": 27,
+      "valid_time": "2026-10-04T15:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/027.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -33.76039123535156,
+            -27.378524780273438
+          ],
+          "max": [
+            27.630233764648438,
+            32.69960021972656
+          ],
+          "quantization_step": [
+            0.24074754901960785,
+            0.23560049019607843
+          ]
+        },
+        "t2m": {
+          "url": "t2m/027.png",
+          "encoding": "grayscale8",
+          "min": 205.57730102539062,
+          "max": 314.5148010253906,
+          "quantization_step": 0.42720588235294116
+        },
+        "precip": {
+          "url": "precip/027.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.28850555419921875,
+          "quantization_step": 0.0011313943301930146
+        }
+      }
+    },
+    {
+      "step": 30,
+      "valid_time": "2026-10-04T18:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/030.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -37.290252685546875,
+            -29.827682495117188
+          ],
+          "max": [
+            28.240997314453125,
+            36.48481750488281
+          ],
+          "quantization_step": [
+            0.25698529411764703,
+            0.26004901960784316
+          ]
+        },
+        "t2m": {
+          "url": "t2m/030.png",
+          "encoding": "grayscale8",
+          "min": 204.2328338623047,
+          "max": 313.0765838623047,
+          "quantization_step": 0.42683823529411763
+        },
+        "precip": {
+          "url": "precip/030.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.3114471435546875,
+          "quantization_step": 0.0012213613472732844
+        }
+      }
+    },
+    {
+      "step": 33,
+      "valid_time": "2026-10-04T21:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/033.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -30.671737670898438,
+            -30.783340454101562
+          ],
+          "max": [
+            33.07826232910156,
+            40.96665954589844
+          ],
+          "quantization_step": [
+            0.25,
+            0.28137254901960784
+          ]
+        },
+        "t2m": {
+          "url": "t2m/033.png",
+          "encoding": "grayscale8",
+          "min": 203.37289428710938,
+          "max": 313.7791442871094,
+          "quantization_step": 0.4329656862745098
+        },
+        "precip": {
+          "url": "precip/033.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.31981658935546875,
+          "quantization_step": 0.0012541827033547793
+        }
+      }
+    },
+    {
+      "step": 36,
+      "valid_time": "2026-10-05T00:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/036.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -36.12310791015625,
+            -31.761764526367188
+          ],
+          "max": [
+            31.28314208984375,
+            35.89448547363281
+          ],
+          "quantization_step": [
+            0.26433823529411765,
+            0.2653186274509804
+          ]
+        },
+        "t2m": {
+          "url": "t2m/036.png",
+          "encoding": "grayscale8",
+          "min": 202.5879669189453,
+          "max": 313.8067169189453,
+          "quantization_step": 0.43615196078431373
+        },
+        "precip": {
+          "url": "precip/036.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.32245635986328125,
+          "quantization_step": 0.0012645347445618873
+        }
+      }
+    },
+    {
+      "step": 39,
+      "valid_time": "2026-10-05T03:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/039.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -41.10194396972656,
+            -33.751068115234375
+          ],
+          "max": [
+            26.085556030273438,
+            31.655181884765625
+          ],
+          "quantization_step": [
+            0.26348039215686275,
+            0.25649509803921566
+          ]
+        },
+        "t2m": {
+          "url": "t2m/039.png",
+          "encoding": "grayscale8",
+          "min": 203.53594970703125,
+          "max": 311.66094970703125,
+          "quantization_step": 0.42401960784313725
+        },
+        "precip": {
+          "url": "precip/039.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.323150634765625,
+          "quantization_step": 0.001267257391237745
+        }
+      }
+    },
+    {
+      "step": 42,
+      "valid_time": "2026-10-05T06:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/042.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -39.40521240234375,
+            -32.873992919921875
+          ],
+          "max": [
+            28.53228759765625,
+            37.844757080078125
+          ],
+          "quantization_step": [
+            0.266421568627451,
+            0.27732843137254903
+          ]
+        },
+        "t2m": {
+          "url": "t2m/042.png",
+          "encoding": "grayscale8",
+          "min": 205.94189453125,
+          "max": 315.19189453125,
+          "quantization_step": 0.4284313725490196
+        },
+        "precip": {
+          "url": "precip/042.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.32344818115234375,
+          "quantization_step": 0.0012684242398131127
+        }
+      }
+    },
+    {
+      "step": 45,
+      "valid_time": "2026-10-05T09:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/045.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -31.460296630859375,
+            -33.55363464355469
+          ],
+          "max": [
+            29.680328369140625,
+            38.25886535644531
+          ],
+          "quantization_step": [
+            0.2397671568627451,
+            0.28161764705882353
+          ]
+        },
+        "t2m": {
+          "url": "t2m/045.png",
+          "encoding": "grayscale8",
+          "min": 209.2253875732422,
+          "max": 318.4441375732422,
+          "quantization_step": 0.42830882352941174
+        },
+        "precip": {
+          "url": "precip/045.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.324371337890625,
+          "quantization_step": 0.0012720444623161764
+        }
+      }
+    },
+    {
+      "step": 48,
+      "valid_time": "2026-10-05T12:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/048.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -42.70745849609375,
+            -33.75105285644531
+          ],
+          "max": [
+            29.16754150390625,
+            33.21769714355469
+          ],
+          "quantization_step": [
+            0.2818627450980392,
+            0.26262254901960785
+          ]
+        },
+        "t2m": {
+          "url": "t2m/048.png",
+          "encoding": "grayscale8",
+          "min": 208.74777221679688,
+          "max": 317.7165222167969,
+          "quantization_step": 0.427328431372549
+        },
+        "precip": {
+          "url": "precip/048.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.3247833251953125,
+          "quantization_step": 0.001273660098805147
+        }
+      }
+    },
+    {
+      "step": 51,
+      "valid_time": "2026-10-05T15:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/051.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -37.549530029296875,
+            -38.23106384277344
+          ],
+          "max": [
+            31.262969970703125,
+            38.30018615722656
+          ],
+          "quantization_step": [
+            0.2698529411764706,
+            0.30012254901960783
+          ]
+        },
+        "t2m": {
+          "url": "t2m/051.png",
+          "encoding": "grayscale8",
+          "min": 207.62559509277344,
+          "max": 315.34434509277344,
+          "quantization_step": 0.4224264705882353
+        },
+        "precip": {
+          "url": "precip/051.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.32479095458984375,
+          "quantization_step": 0.0012736900179993872
+        }
+      }
+    },
+    {
+      "step": 54,
+      "valid_time": "2026-10-05T18:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/054.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -40.5977783203125,
+            -30.847763061523438
+          ],
+          "max": [
+            33.6834716796875,
+            41.37098693847656
+          ],
+          "quantization_step": [
+            0.29129901960784316,
+            0.2832107843137255
+          ]
+        },
+        "t2m": {
+          "url": "t2m/054.png",
+          "encoding": "grayscale8",
+          "min": 206.33091735839844,
+          "max": 313.58091735839844,
+          "quantization_step": 0.42058823529411765
+        },
+        "precip": {
+          "url": "precip/054.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.324798583984375,
+          "quantization_step": 0.0012737199371936274
+        }
+      }
+    },
+    {
+      "step": 57,
+      "valid_time": "2026-10-05T21:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/057.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -42.7957763671875,
+            -35.072113037109375
+          ],
+          "max": [
+            33.5792236328125,
+            34.771636962890625
+          ],
+          "quantization_step": [
+            0.2995098039215686,
+            0.27389705882352944
+          ]
+        },
+        "t2m": {
+          "url": "t2m/057.png",
+          "encoding": "grayscale8",
+          "min": 206.00071716308594,
+          "max": 313.50071716308594,
+          "quantization_step": 0.4215686274509804
+        },
+        "precip": {
+          "url": "precip/057.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.324798583984375,
+          "quantization_step": 0.0012737199371936274
+        }
+      }
+    },
+    {
+      "step": 60,
+      "valid_time": "2026-10-06T00:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/060.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -42.024810791015625,
+            -38.101959228515625
+          ],
+          "max": [
+            30.943939208984375,
+            41.398040771484375
+          ],
+          "quantization_step": [
+            0.2861519607843137,
+            0.31176470588235294
+          ]
+        },
+        "t2m": {
+          "url": "t2m/060.png",
+          "encoding": "grayscale8",
+          "min": 205.76296997070312,
+          "max": 313.1067199707031,
+          "quantization_step": 0.4209558823529412
+        },
+        "precip": {
+          "url": "precip/060.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.324798583984375,
+          "quantization_step": 0.0012737199371936274
+        }
+      }
+    },
+    {
+      "step": 63,
+      "valid_time": "2026-10-06T03:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/063.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -47.08741760253906,
+            -37.76048278808594
+          ],
+          "max": [
+            37.63133239746094,
+            34.86451721191406
+          ],
+          "quantization_step": [
+            0.33223039215686273,
+            0.28480392156862744
+          ]
+        },
+        "t2m": {
+          "url": "t2m/063.png",
+          "encoding": "grayscale8",
+          "min": 206.25592041015625,
+          "max": 312.03717041015625,
+          "quantization_step": 0.41482843137254904
+        },
+        "precip": {
+          "url": "precip/063.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.324798583984375,
+          "quantization_step": 0.0012737199371936274
+        }
+      }
+    },
+    {
+      "step": 66,
+      "valid_time": "2026-10-06T06:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/066.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -50.23072814941406,
+            -34.1968994140625
+          ],
+          "max": [
+            37.48802185058594,
+            40.0218505859375
+          ],
+          "quantization_step": [
+            0.3439950980392157,
+            0.29105392156862747
+          ]
+        },
+        "t2m": {
+          "url": "t2m/066.png",
+          "encoding": "grayscale8",
+          "min": 208.0501251220703,
+          "max": 314.8001251220703,
+          "quantization_step": 0.41862745098039217
+        },
+        "precip": {
+          "url": "precip/066.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.32480621337890625,
+          "quantization_step": 0.0012737498563878675
+        }
+      }
+    },
+    {
+      "step": 69,
+      "valid_time": "2026-10-06T09:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/069.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -42.12724304199219,
+            -33.72802734375
+          ],
+          "max": [
+            36.31025695800781,
+            37.86572265625
+          ],
+          "quantization_step": [
+            0.3075980392156863,
+            0.28075980392156863
+          ]
+        },
+        "t2m": {
+          "url": "t2m/069.png",
+          "encoding": "grayscale8",
+          "min": 209.21238708496094,
+          "max": 317.18113708496094,
+          "quantization_step": 0.42340686274509803
+        },
+        "precip": {
+          "url": "precip/069.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.325164794921875,
+          "quantization_step": 0.0012751560585171568
+        }
+      }
+    },
+    {
+      "step": 72,
+      "valid_time": "2026-10-06T12:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/072.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -44.0426025390625,
+            -35.33903503417969
+          ],
+          "max": [
+            35.8011474609375,
+            35.94221496582031
+          ],
+          "quantization_step": [
+            0.3131127450980392,
+            0.2795343137254902
+          ]
+        },
+        "t2m": {
+          "url": "t2m/072.png",
+          "encoding": "grayscale8",
+          "min": 209.98179626464844,
+          "max": 317.79429626464844,
+          "quantization_step": 0.4227941176470588
+        },
+        "precip": {
+          "url": "precip/072.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.32567596435546875,
+          "quantization_step": 0.00127716064453125
+        }
+      }
+    }
+  ],
+  "license": "CC-BY-4.0",
+  "attribution": "ECMWF Open Data © European Centre for Medium-Range Weather Forecasts (ECMWF), licensed under CC BY 4.0",
+  "warnings": []
+}
