@@ -1,0 +1,29 @@
+{
+  "_fonte": "Legenda del Bollettino di Vigilanza Meteorologica nazionale (Dipartimento della Protezione Civile, CC BY 4.0): files/legenda_bv_verticale.jpg e files/iconFenomeni/<id>.png del repo pcm-dpc/DPC-Bollettini-Vigilanza-Meteorologica, abbinate per ordine e aspetto il 25/10/2026.",
+  "fenomeni": {
+    "1":  { "categoria": "pioggia", "nome": "Piogge sparse o intermittenti" },
+    "2":  { "categoria": "pioggia", "nome": "Piogge diffuse e continue" },
+    "3":  { "categoria": "neve", "nome": "Nevicate deboli o moderate" },
+    "4":  { "categoria": "neve", "nome": "Nevicate abbondanti" },
+    "5":  { "categoria": "temporali", "nome": "Rovesci o temporali isolati" },
+    "6":  { "categoria": "temporali", "nome": "Rovesci o temporali sparsi" },
+    "7":  { "categoria": "temporali", "nome": "Rovesci o temporali diffusi" },
+    "10": { "categoria": "vento", "nome": "Venti forti" },
+    "11": { "categoria": "vento", "nome": "Burrasca" },
+    "12": { "categoria": "vento", "nome": "Tempesta" },
+    "13": { "categoria": "vento", "nome": "Frequenti raffiche" },
+    "20": { "categoria": "gelate", "nome": "Gelate diffuse a quote collinari" },
+    "21": { "categoria": "gelate", "nome": "Gelate diffuse a quote di pianura" },
+    "30": { "categoria": "nebbia", "nome": "Nebbie nelle ore notturne e del primo mattino" },
+    "31": { "categoria": "nebbia", "nome": "Nebbie diffuse e persistenti anche di giorno" },
+    "40": { "categoria": "mare", "nome": "Mare molto mosso" },
+    "41": { "categoria": "mare", "nome": "Mare agitato o molto agitato" },
+    "42": { "categoria": "mare", "nome": "Mare grosso o molto grosso" },
+    "50": { "categoria": "mare", "nome": "Moto ondoso in aumento" },
+    "51": { "categoria": "mare", "nome": "Moto ondoso in diminuzione" },
+    "60": { "categoria": "temperature", "nome": "Temperature elevate o in sensibile aumento" },
+    "61": { "categoria": "temperature", "nome": "Temperature molto elevate o in marcato aumento" },
+    "62": { "categoria": "temperature", "nome": "Temperature basse o in sensibile calo" },
+    "63": { "categoria": "temperature", "nome": "Temperature molto basse o in marcato calo" }
+  }
+}
