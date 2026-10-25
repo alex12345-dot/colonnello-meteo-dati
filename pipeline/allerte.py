@@ -51,8 +51,25 @@ def load_comuni_regioni() -> dict[str, str]:
     return {name: next(iter(regions)) for name, regions in aliases.items() if len(regions) == 1}
 
 
+def _comune_key(name: str, regions: dict[str, str]) -> str:
+    name = normalize_comune(name)
+    # Prima i nomi interi: il trattino puo' appartenere al nome ISTAT.
+    parts = [part.strip() for part in name.split("/")]
+    for candidate in [name, *parts]:
+        if candidate in regions:
+            return candidate
+    for part in parts:
+        # Prefissi dal piu' lungo al piu' corto: anche la traduzione puo'
+        # contenere trattini (Duino Aurisina-Devin-Nabrezina).
+        for separator in reversed(list(re.finditer("-", part))):
+            candidate = part[:separator.start()].strip()
+            if candidate in regions:
+                return candidate
+    return name
+
+
 def zone_region(name: str, comuni, regions: dict[str, str]) -> str | None:
-    names = {normalize_comune(c) for c in comuni if isinstance(c, str) and c.strip()} if isinstance(comuni, list) else set()
+    names = {_comune_key(c, regions) for c in comuni if isinstance(c, str) and c.strip()} if isinstance(comuni, list) else set()
     votes = Counter(regions[c] for c in names if c in regions)
     recognized = sum(votes.values())
     coverage = recognized / len(names) if names else 0

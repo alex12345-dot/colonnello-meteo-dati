@@ -2,7 +2,7 @@ name: dati
 
 # Le corse ECMWF escono a 00/06/12/18 UTC e l'open data arriva ~7-9 h dopo l'ora nominale.
 # Le schedule di GitHub partono spesso in ritardo: qui non e' un problema, il lavoro controlla
-# qual e' l'ultima corsa pubblicata; pubblica se cambiano ECMWF oppure le allerte DPC.
+# qual e' l'ultima corsa pubblicata; pubblica se cambiano ECMWF, allerte o vigilanza DPC.
 on:
   schedule:
     - cron: "40 8,14,20,2 * * *"
@@ -33,13 +33,13 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Recupera manifest e allerte gia' pubblicati
+      - name: Recupera manifest, allerte e vigilanza gia' pubblicati
         id: stato
         run: |
           mkdir -p "$RUNNER_TEMP/dpc-precedente"
           if git fetch --depth=1 origin gh-pages; then
             git show FETCH_HEAD:manifest.json > "$RUNNER_TEMP/dpc-precedente/manifest.json"
-            for nome in allerte.json zone-allerta.json; do
+            for nome in allerte.json zone-allerta.json vigilanza.json; do
               if git cat-file -e "FETCH_HEAD:$nome" 2>/dev/null; then
                 git show "FETCH_HEAD:$nome" > "$RUNNER_TEMP/dpc-precedente/$nome"
               fi
@@ -87,10 +87,13 @@ jobs:
           path = Path(os.environ["RUNNER_TEMP"]) / "dpc-precedente/manifest.json"
           prima = json.loads(path.read_text()) if path.exists() else {}
           digest = hashlib.sha256(json.dumps(nuovo.get("allerte"), sort_keys=True).encode()).hexdigest()
+          vigilanza_digest = hashlib.sha256(json.dumps(nuovo.get("vigilanza"), sort_keys=True).encode()).hexdigest()
           with open(os.environ["GITHUB_ENV"], "a") as env:
               env.write(f"ALLERTE_SHA={digest}\n")
-              if nuovo["run"] == prima.get("run") and nuovo.get("allerte") == prima.get("allerte"):
-                  print("::notice::corsa ECMWF e allerte DPC gia' online, niente da pubblicare")
+              env.write(f"VIGILANZA_SHA={vigilanza_digest}\n")
+              if (nuovo["run"] == prima.get("run") and nuovo.get("allerte") == prima.get("allerte")
+                      and nuovo.get("vigilanza") == prima.get("vigilanza")):
+                  print("::notice::corsa ECMWF, allerte e vigilanza DPC gia' online, niente da pubblicare")
                   env.write("SALTA=1\n")
           PY
 
@@ -126,6 +129,10 @@ jobs:
           digest = hashlib.sha256(json.dumps(m.get("allerte"), sort_keys=True).encode()).hexdigest()
           if digest != os.environ["ALLERTE_SHA"]:
               print("Pages serve ancora una voce allerte diversa da quella pubblicata")
+              sys.exit(3)
+          vigilanza_digest = hashlib.sha256(json.dumps(m.get("vigilanza"), sort_keys=True).encode()).hexdigest()
+          if vigilanza_digest != os.environ["VIGILANZA_SHA"]:
+              print("Pages serve ancora una voce vigilanza diversa da quella pubblicata")
               sys.exit(3)
           assert m["steps"], "manifest senza passi"
           assert m["grid"]["lon0"] == -180.0, "origine della griglia non dichiarata"

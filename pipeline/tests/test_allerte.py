@@ -4,7 +4,8 @@ import json
 import pytest
 
 from pipeline.allerte import (
-    alert_level, geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones,
+    alert_level, geometry_fingerprint, json_bytes, load_comuni_regioni,
+    reduce_alerts, simplify_zones, zone_region,
 )
 from pipeline.tests.conftest import FIXTURES
 
@@ -293,3 +294,55 @@ def test_bilingual_istat_aliases_and_ambiguous_names(tmp_path, monkeypatch):
         assert "omonimo" not in regions
     finally:
         module.load_comuni_regioni.cache_clear()
+
+
+@pytest.mark.parametrize("comune,expected", [
+    ("Bolzano/Bozen", "Trentino-Alto Adige/Südtirol"),
+    ("Bressanone/Brixen", "Trentino-Alto Adige/Südtirol"),
+    ("Appiano sulla strada del vino/Eppan an der Weinstrasse", "Trentino-Alto Adige/Südtirol"),
+    ("Bozen / Bolzano", "Trentino-Alto Adige/Südtirol"),
+    ("Duino Aurisina-Devin-Nabrežina", "Friuli-Venezia Giulia"),
+    ("Duino Aurisina - Devin-Nabrežina", "Friuli-Venezia Giulia"),
+    ("Monrupino-Repentabor", "Friuli-Venezia Giulia"),
+    ("Sgonico-Zgonik", "Friuli-Venezia Giulia"),
+    ("San Dorligo della Valle-Dolina", "Friuli-Venezia Giulia"),
+    ("Doberdò del Lago-Doberdob", "Friuli-Venezia Giulia"),
+    ("Bellaria-Igea Marina - traduzione", "Emilia-Romagna"),
+])
+def test_dpc_bilingual_names_resolve_individually(comune, expected):
+    assert zone_region("zona bilingue", [comune], load_comuni_regioni()) == expected
+
+
+def test_bolzano_bilingual_list_in_reduced_alerts(dpc_pair):
+    for day in dpc_pair:
+        day["features"][0]["properties"].update({
+            "Nome zona": "Provincia Autonoma di Bolzano",
+            "Comuni": ["Bolzano/Bozen", "Bressanone/Brixen",
+                       "Appiano sulla strada del vino/Eppan an der Weinstrasse", "Bolzano/Bozen"],
+        })
+    zones = reduce_alerts(*dpc_pair, "20261007_1424")["zone"]
+    assert next(z for z in zones if z["nome"] == "Provincia Autonoma di Bolzano")["regione"] == "Trentino-Alto Adige/Südtirol"
+
+
+def test_real_carso_bilingual_list_with_duplicates():
+    original = json.loads((FIXTURES / "dpc_20261025_1326_today_carso.json").read_text(encoding="utf-8"))
+    comuni = original["features"][0]["properties"]["Comuni"]
+    comuni.extend(comuni[:])
+    assert reduce_alerts(original, original, "20261007_1424")["zone"][0]["regione"] == "Friuli-Venezia Giulia"
+
+
+@pytest.mark.parametrize("comune", ["Bellaria-Igea Marina", "Bellaria-Igea Marina/traduzione"])
+def test_known_hyphenated_istat_name_precedes_prefix(comune):
+    regions = {**load_comuni_regioni(), "bellaria": "Lazio"}
+    assert regions["bellaria-igea marina"] == "Emilia-Romagna"
+    assert zone_region("nome intero", [comune], regions) == "Emilia-Romagna"
+
+
+@pytest.mark.parametrize("comuni", [
+    ["Firenze"] * 10 + ["Roma"],
+    ["Bolzano/Bozen"] * 10 + ["Bolzano", "Roma"],
+    ["Monrupino-Repentabor"] * 10 + ["Monrupino", "Roma"],
+    ["Bolzano/Bozen"] * 10 + ["ignoto 1", "ignoto 2"],
+])
+def test_duplicate_comuni_do_not_bias_majority_or_coverage(comuni):
+    assert zone_region("duplicati", comuni, load_comuni_regioni()) is None
