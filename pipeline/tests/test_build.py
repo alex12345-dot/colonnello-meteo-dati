@@ -155,3 +155,56 @@ def test_unknown_level_preserves_previous_files(tmp_path, dpc_pair):
                    source=OfflineSource(), dpc_source=InvalidDPC())
     assert result["allerte"] == {**first["allerte"], "stato": "non aggiornato"}
     assert (tmp_path / "allerte.json").read_bytes() == previous
+
+
+class FailedVigilanza:
+    def latest_bulletin(self):
+        raise DPCError("vigilanza HTTP=503")
+
+
+def test_build_publishes_vigilanza(tmp_path):
+    manifest = build("ifs", "2026091300", "12", "t2m", tmp_path, source=OfflineSource())
+    assert manifest["vigilanza"] == {"url": "vigilanza.json", "data": "2026-10-25", "stato": "aggiornato"}
+    bulletin = json.loads((tmp_path / "vigilanza.json").read_text(encoding="utf-8"))
+    assert bulletin["data"] == manifest["vigilanza"]["data"]
+    assert len(bulletin["giorni"][0]["fenomeni"]) == 27
+    assert not (tmp_path / "vigilanza.json.tmp").exists()
+
+
+def test_failed_vigilanza_preserves_last_good_and_other_sources(tmp_path, capsys):
+    first = build("ifs", "2026091300", "12", "t2m", tmp_path, source=OfflineSource())
+    good = (tmp_path / "vigilanza.json").read_bytes()
+    second = build("ifs", "2026091306", "12", "t2m", tmp_path,
+                   source=OfflineSource(), vigilanza_source=FailedVigilanza())
+    assert second["vigilanza"] == {**first["vigilanza"], "stato": "non aggiornato"}
+    assert (tmp_path / "vigilanza.json").read_bytes() == good
+    assert second["run"] == "2026091306" and second["steps"][0]["layers"]["t2m"]
+    assert second["allerte"]["stato"] == "aggiornato"
+    assert second["warnings"][-1]["source"] == "DPC vigilanza"
+    assert "::warning::DPC vigilanza non aggiornato: DPCError: vigilanza HTTP=503" in capsys.readouterr().err
+    assert json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8")) == second
+
+
+def test_first_vigilanza_failure_has_no_fabricated_product(tmp_path):
+    manifest = build("ifs", "2026091300", "12", "t2m", tmp_path,
+                     source=OfflineSource(), vigilanza_source=FailedVigilanza())
+    assert "vigilanza" not in manifest
+    assert not (tmp_path / "vigilanza.json").exists()
+    assert manifest["allerte"]["stato"] == "aggiornato"
+    assert manifest["warnings"][-1]["source"] == "DPC vigilanza"
+
+
+def test_invalid_vigilanza_preserves_good_file(tmp_path, vig_bulletin):
+    first = build("ifs", "2026091300", "12", "t2m", tmp_path, source=OfflineSource())
+    good = (tmp_path / "vigilanza.json").read_bytes()
+
+    class InvalidVigilanza:
+        def latest_bulletin(self):
+            stamp, index, topologies, style = vig_bulletin()
+            index["today"]["html_description"] = "<p>incompleto</p>"
+            return stamp, index, topologies, style
+
+    manifest = build("ifs", "2026091300", "12", "t2m", tmp_path,
+                     source=OfflineSource(), vigilanza_source=InvalidVigilanza())
+    assert manifest["vigilanza"] == {**first["vigilanza"], "stato": "non aggiornato"}
+    assert (tmp_path / "vigilanza.json").read_bytes() == good

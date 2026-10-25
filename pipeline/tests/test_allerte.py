@@ -20,7 +20,7 @@ def test_real_quiet_bulletin_and_name_pairing(dpc_pair):
     assert len(result["zone"]) == 10
     assert all(set(z[day].values()) == {0} for z in result["zone"] for day in ("oggi", "domani"))
     assert "Comuni" not in json_bytes(result).decode()
-    assert all(set(z) == {"nome", "oggi", "domani"} for z in result["zone"])
+    assert all(set(z) == {"nome", "regione", "oggi", "domani"} for z in result["zone"])
 
 
 def test_real_orange_and_yellow_bulletin():
@@ -239,3 +239,57 @@ def test_malformed_parts_are_not_silently_discarded(ring):
     outer = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]
     with pytest.raises(ValueError):
         simplify_zones(geometry_collection("MultiPolygon", [[outer], [ring]]))
+
+
+@pytest.mark.parametrize("fixture", ["dpc_20261025_1326_today.json", "dpc_20261007_1424_today.json"])
+def test_regions_on_real_alert_zones(fixture):
+    original = json.loads((FIXTURES / fixture).read_text(encoding="utf-8"))
+    before = deepcopy(original)
+    by_name = {z["nome"]: z["regione"] for z in reduce_alerts(original, original, "20261025_1326")["zone"]}
+    assert original == before
+    assert by_name["Bacino dell'Aterno"] == "Abruzzo"
+    if "Arno-Firenze" in by_name:
+        assert by_name["Arno-Firenze"] == "Toscana"
+        for name in ("Versante Jonico Centro-settentrionale", "Versante Jionico Centro-meridionale", "Versante Jonico Meridionale"):
+            assert by_name[name] == "Calabria"
+    else:
+        assert by_name["Pianura centrale"] == "Lombardia"
+        assert by_name["Pianura ferrarese"] == "Emilia-Romagna"
+
+
+@pytest.mark.parametrize("comune", ["  CITTÀ   SANT’ ANGELO ", "citta sant\'angelo", "L‘ AQUILA", "l´aquila", "L`AQUILA"])
+def test_region_normalizes_case_accents_apostrophes_and_spaces(dpc_pair, comune):
+    for day in dpc_pair:
+        day["features"][0]["properties"]["Comuni"] = [comune]
+    assert reduce_alerts(*dpc_pair, "20261025_1326")["zone"][0]["regione"] == "Abruzzo"
+
+
+@pytest.mark.parametrize("comuni,expected,percentage", [
+    (["Firenze", "non esiste", "altro sconosciuto"], None, "33.3%"),
+    (["Firenze", "non esiste"], "Toscana", None),
+    ([], None, "0.0%"),
+    (["Firenze", "Roma", "Fiesole"], "Toscana", None),
+    (["Firenze", "Roma"], None, "100.0%"),
+])
+def test_region_coverage_and_majority(comuni, expected, percentage, caplog):
+    from pipeline.allerte import load_comuni_regioni, zone_region
+    assert zone_region("zona prova", comuni, load_comuni_regioni()) == expected
+    if percentage:
+        assert "zona prova" in caplog.text and percentage in caplog.text
+    else:
+        assert not caplog.records
+
+
+def test_bilingual_istat_aliases_and_ambiguous_names(tmp_path, monkeypatch):
+    import pipeline.allerte as module
+    csv_file = tmp_path / "comuni.csv"
+    csv_file.write_text("# ISTAT CC BY 4.0\ncomune,regione\nBolzano/Bozen,Trentino-Alto Adige\nOmonimo,Toscana\nOmonimo,Lazio\n", encoding="utf-8")
+    monkeypatch.setattr(module, "COMUNI_REGIONI", csv_file)
+    module.load_comuni_regioni.cache_clear()
+    try:
+        regions = module.load_comuni_regioni()
+        for name in ("Bolzano", "Bozen", "Bolzano/Bozen"):
+            assert module.zone_region("zona bilingue", [name], regions) == "Trentino-Alto Adige"
+        assert "omonimo" not in regions
+    finally:
+        module.load_comuni_regioni.cache_clear()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from http.client import HTTPException
 import json
 import os
@@ -12,18 +13,35 @@ from typing import Callable, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 
 REPOSITORY = "pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica"
 REPOSITORY_URL = f"https://github.com/{REPOSITORY}"
 API_URL = f"https://api.github.com/repos/{REPOSITORY}"
 RAW_URL = f"https://raw.githubusercontent.com/{REPOSITORY}"
+VIGILANZA_REPOSITORY = "pcm-dpc/DPC-Bollettini-Vigilanza-Meteorologica"
+VIGILANZA_URL = f"https://github.com/{VIGILANZA_REPOSITORY}"
+DAY_KEYS = {"today": "oggi", "tomorrow": "domani", "aftertomorrow": "dopodomani"}
 TRANSIENT_STATUS = {408, 429, 500, 502, 503, 504}
 FILENAME = re.compile(r"^(\d{8}_\d{4})_(today|tomorrow)\.json$")
 
 
 class DPCError(RuntimeError):
     """Fonte non disponibile o risposta non utilizzabile."""
+
+
+def vigilanza_days(index: dict):
+    days = {}
+    for key, value in index.items():
+        day = DAY_KEYS.get(key.lower().replace("_", "").replace("-", ""))
+        if day:
+            if day in days or not isinstance(value, dict):
+                raise DPCError(f"giorno vigilanza duplicato o non valido: {key}")
+            days[day] = value
+    if "oggi" not in days:
+        raise DPCError("vigilanza senza giorno today")
+    return [(day, days[day]) for day in DAY_KEYS.values() if day in days]
 
 
 def latest_complete_bulletin(paths: Iterable[str]) -> str:
@@ -41,6 +59,8 @@ def latest_complete_bulletin(paths: Iterable[str]) -> str:
 
 
 class DPCSource:
+    api_url = API_URL
+
     def __init__(
         self,
         *,
@@ -95,7 +115,7 @@ class DPCSource:
         raise AssertionError("tentativi DPC esauriti")
 
     def _tree(self, reference: str) -> dict:
-        tree = self._json(f"{API_URL}/git/trees/{quote(reference, safe='')}")
+        tree = self._json(f"{self.api_url}/git/trees/{quote(reference, safe='')}")
         if tree.get("truncated") or not isinstance(tree.get("tree"), list):
             raise DPCError("lista git/trees DPC incompleta o non valida")
         return tree
@@ -115,3 +135,58 @@ class DPCSource:
         stamp = latest_complete_bulletin(e["path"] for e in tree["tree"] if e.get("type") == "blob")
         base = f"{RAW_URL}/{quote(commit, safe='')}/files/geojson/{stamp}"
         return stamp, self._json(f"{base}_today.json"), self._json(f"{base}_tomorrow.json")
+
+
+class VigilanzaSource(DPCSource):
+    """Indice, punti e legenda della vigilanza dallo stesso commit osservato."""
+
+    api_url = f"https://api.github.com/repos/{VIGILANZA_REPOSITORY}"
+
+    def latest_bulletin(self, now: datetime | None = None) -> tuple[str, dict, dict, dict | None]:
+        current = now or datetime.now(ZoneInfo("Europe/Rome"))
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=ZoneInfo("Europe/Rome"))
+        today = current.astimezone(ZoneInfo("Europe/Rome")).date()
+        repository = self._json(self.api_url)
+        commit = self._json(f"{self.api_url}/commits/{quote(repository['default_branch'], safe='')}")["sha"]
+        tree = self._tree(commit)
+
+        def subtree(parent, directory):
+            entries = [e for e in parent["tree"] if e.get("path") == directory and e.get("type") == "tree"]
+            if len(entries) != 1:
+                raise DPCError(f"directory vigilanza non trovata: {directory}")
+            return self._tree(entries[0]["sha"])
+
+        files = subtree(tree, "files")
+        stamps = []
+        for entry in files["tree"]:
+            match = re.fullmatch(r"(\d{8})\.json", entry.get("path", ""))
+            if entry.get("type") == "blob" and match:
+                stamp = match[1]
+                try:
+                    issued = date.fromisoformat(stamp)
+                except ValueError:
+                    continue
+                if issued <= today:
+                    stamps.append(stamp)
+        if not stamps:
+            raise DPCError("nessun bollettino vigilanza pubblicato entro oggi Europe/Rome")
+        stamp = max(stamps)
+        base = f"https://raw.githubusercontent.com/{VIGILANZA_REPOSITORY}/{quote(commit, safe='')}/files"
+        index = self._json(f"{base}/{stamp}.json")
+        topo_tree = subtree(files, "topojson")
+        available = {e["path"] for e in topo_tree["tree"] if e.get("type") == "blob"}
+        topologies = {}
+        for day, entry in vigilanza_days(index):
+            filename = f"{stamp}_fenomeni_{day}.json"
+            links = entry.get("topo_json", [])
+            if isinstance(links, str):
+                links = [links]
+            if filename not in available or not isinstance(links, list) or not any(
+                isinstance(link, str) and urlsplit(link).path.rsplit("/", 1)[-1] == filename for link in links
+            ):
+                raise DPCError(f"punti vigilanza mancanti: {filename}")
+            topologies[day] = self._json(f"{base}/topojson/{filename}")
+        style_name = f"{stamp}_fenomeni_style.json"
+        style = self._json(f"{base}/topojson/{style_name}") if style_name in available else None
+        return stamp, index, topologies, style

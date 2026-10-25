@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from collections import Counter
+import csv
+from functools import lru_cache
 import hashlib
 import json
+import logging
 import math
+from pathlib import Path
+import re
+import unicodedata
 from zoneinfo import ZoneInfo
 
 try:
@@ -23,6 +30,40 @@ RISKS = {
 }
 MAX_ZONE_BYTES = 700_000
 MIN_PART_AREA = 1e-7  # gradi quadrati, prima dell'arrotondamento
+COMUNI_REGIONI = Path(__file__).parent / "data" / "comuni_regioni.csv"
+
+
+def normalize_comune(name: str) -> str:
+    name = name.translate(str.maketrans({"’": "'", "‘": "'", "`": "'", "ʼ": "'", "´": "'"}))
+    name = unicodedata.normalize("NFKD", name.casefold())
+    name = "".join(c for c in name if not unicodedata.combining(c))
+    return re.sub(r"\s*'\s*", "'", " ".join(name.split()))
+
+
+@lru_cache(maxsize=1)
+def load_comuni_regioni() -> dict[str, str]:
+    aliases: dict[str, set[str]] = {}
+    with COMUNI_REGIONI.open(encoding="utf-8-sig", newline="") as stream:
+        for row in csv.DictReader(line for line in stream if not line.startswith("#")):
+            for name in [row["comune"], *row["comune"].split("/")]:
+                aliases.setdefault(normalize_comune(name), set()).add(row["regione"])
+    # Un omonimo presente in regioni diverse non e' una corrispondenza certa.
+    return {name: next(iter(regions)) for name, regions in aliases.items() if len(regions) == 1}
+
+
+def zone_region(name: str, comuni, regions: dict[str, str]) -> str | None:
+    names = {normalize_comune(c) for c in comuni if isinstance(c, str) and c.strip()} if isinstance(comuni, list) else set()
+    votes = Counter(regions[c] for c in names if c in regions)
+    recognized = sum(votes.values())
+    coverage = recognized / len(names) if names else 0
+    if coverage < 0.5:
+        logging.getLogger(__name__).warning("DPC zona %s: comuni riconosciuti %.1f%%; regione nulla", name, 100 * coverage)
+        return None
+    region, count = votes.most_common(1)[0]
+    if count * 2 <= recognized:
+        logging.getLogger(__name__).warning("DPC zona %s: nessuna maggioranza regionale (riconosciuti %.1f%%)", name, 100 * coverage)
+        return None
+    return region
 
 
 class _UnrepresentableRing(ValueError):
@@ -59,8 +100,9 @@ def reduce_alerts(today: dict, tomorrow: dict, bulletin: str) -> dict:
     if current.keys() != following.keys():
         raise ValueError(f"zone DPC today/tomorrow diverse: {sorted(current.keys() ^ following.keys())}")
     zones = []
+    regions = load_comuni_regioni()
     for name in sorted(current):
-        zone = {"nome": name}
+        zone = {"nome": name, "regione": zone_region(name, current[name]["properties"].get("Comuni"), regions)}
         for day, features in (("oggi", current), ("domani", following)):
             properties = features[name]["properties"]
             zone[day] = {key: alert_level(properties.get(source)) for key, source in RISKS.items()}

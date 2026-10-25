@@ -1,4 +1,4 @@
-"""CLI per produrre livelli ECMWF, allerte DPC e manifest Colonnello Meteo."""
+"""CLI per produrre livelli ECMWF, allerte, vigilanza DPC e manifest Colonnello Meteo."""
 
 from __future__ import annotations
 
@@ -14,13 +14,15 @@ try:
     from pipeline.encode import encode_scalar, encode_wind
     from pipeline.grib2 import decode_message, iter_messages
     from pipeline.source_ecmwf import ECMWFSource, normalize_run, run_id
-    from pipeline.source_dpc import DPCSource
+    from pipeline.source_dpc import DPCSource, VigilanzaSource
+    from pipeline.vigilanza import reduce_vigilanza
 except ModuleNotFoundError:  # esecuzione diretta dalla cartella pipeline
     from allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
     from encode import encode_scalar, encode_wind
     from grib2 import decode_message, iter_messages
     from source_ecmwf import ECMWFSource, normalize_run, run_id
-    from source_dpc import DPCSource
+    from source_dpc import DPCSource, VigilanzaSource
+    from vigilanza import reduce_vigilanza
 
 
 LAYER_PARAMETERS = {
@@ -102,6 +104,16 @@ def update_alerts(destination: Path, previous: dict | None, source: DPCSource | 
     }
 
 
+def update_vigilanza(destination: Path, source: VigilanzaSource | None) -> dict:
+    stamp, index, topologies, style = (source or VigilanzaSource()).latest_bulletin()
+    bulletin = reduce_vigilanza(stamp, index, topologies, style)
+    payload = json_bytes(bulletin)
+    temporary = destination / "vigilanza.json.tmp"
+    temporary.write_bytes(payload)
+    temporary.replace(destination / "vigilanza.json")
+    return {"url": "vigilanza.json", "data": bulletin["data"], "stato": "aggiornato"}
+
+
 def build(
     model: str,
     run: str,
@@ -111,6 +123,7 @@ def build(
     *,
     source: ECMWFSource | None = None,
     dpc_source: DPCSource | None = None,
+    vigilanza_source: VigilanzaSource | None = None,
 ) -> dict:
     model = "aifs-single" if model == "aifs" else model
     steps = parse_steps(steps_spec, "ifs" if model == "ifs" else "aifs-single")
@@ -120,10 +133,13 @@ def build(
     destination = Path(output)
     destination.mkdir(parents=True, exist_ok=True)
     previous_alerts = None
+    previous_vigilanza = None
     manifest_path = destination / "manifest.json"
     if manifest_path.is_file():
         try:
-            previous_alerts = json.loads(manifest_path.read_text(encoding="utf-8")).get("allerte")
+            previous = json.loads(manifest_path.read_text(encoding="utf-8"))
+            previous_alerts = previous.get("allerte")
+            previous_vigilanza = previous.get("vigilanza")
         except (ValueError, OSError):
             pass  # Un manifest illeggibile non e' un'ultima voce buona.
 
@@ -194,6 +210,14 @@ def build(
         ),
         "warnings": warnings,
     }
+    try:
+        manifest["vigilanza"] = update_vigilanza(destination, vigilanza_source)
+    except Exception as exc:
+        message = f"DPC vigilanza non aggiornato: {type(exc).__name__}: {exc}"
+        print(f"::warning::{message}", file=sys.stderr)
+        warnings.append({"source": "DPC vigilanza", "message": message})
+        if previous_vigilanza:
+            manifest["vigilanza"] = {**previous_vigilanza, "stato": "non aggiornato"}
     try:
         manifest["allerte"] = update_alerts(destination, previous_alerts, dpc_source)
     except Exception as exc:
