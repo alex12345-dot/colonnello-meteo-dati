@@ -79,7 +79,8 @@ def test_build_publishes_dpc_and_keeps_unchanged_geometry(tmp_path, dpc_pair, mo
     manifest = build("ifs", "2026091300", "12", "t2m", tmp_path, source=OfflineSource())
     entry = manifest["allerte"]
     assert entry == {
-        "url": "allerte.json", "zone_url": "zone-allerta.json", "bollettino": "20261025_1326",
+        "url": "allerte.json", "zone_url": "zone-allerta.json",
+        "file": "allerte.json", "zone": "zone-allerta.json", "bollettino": "20261025_1326",
         "emesso": "2026-10-25T13:26:00+01:00", "impronta_zone": geometry_fingerprint(dpc_pair[0]),
         "stato": "aggiornato",
     }
@@ -164,7 +165,7 @@ class FailedVigilanza:
 
 def test_build_publishes_vigilanza(tmp_path):
     manifest = build("ifs", "2026091300", "12", "t2m", tmp_path, source=OfflineSource())
-    assert manifest["vigilanza"] == {"url": "vigilanza.json", "data": "2026-10-25", "stato": "aggiornato"}
+    assert manifest["vigilanza"] == {"url": "vigilanza.json", "file": "vigilanza.json", "data": "2026-10-25", "stato": "aggiornato"}
     bulletin = json.loads((tmp_path / "vigilanza.json").read_text(encoding="utf-8"))
     assert bulletin["data"] == manifest["vigilanza"]["data"]
     assert len(bulletin["giorni"][0]["fenomeni"]) == 27

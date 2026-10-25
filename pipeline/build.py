@@ -99,6 +99,8 @@ def update_alerts(destination: Path, previous: dict | None, source: DPCSource | 
     (destination / "allerte.json.tmp").replace(destination / "allerte.json")
     return {
         "url": "allerte.json", "zone_url": "zone-allerta.json",
+        # Chiavi lette dall'app (meteo-core.js: meta.file, meta.zone).
+        "file": "allerte.json", "zone": "zone-allerta.json",
         "bollettino": bulletin, "emesso": alerts["emesso"],
         "impronta_zone": fingerprint, "stato": "aggiornato",
     }
@@ -111,7 +113,7 @@ def update_vigilanza(destination: Path, source: VigilanzaSource | None) -> dict:
     temporary = destination / "vigilanza.json.tmp"
     temporary.write_bytes(payload)
     temporary.replace(destination / "vigilanza.json")
-    return {"url": "vigilanza.json", "data": bulletin["data"], "stato": "aggiornato"}
+    return {"url": "vigilanza.json", "file": "vigilanza.json", "data": bulletin["data"], "stato": "aggiornato"}
 
 
 def build(
