@@ -1,4 +1,4 @@
-"""CLI per produrre PNG e manifest Colonnello Meteo dagli open data ECMWF."""
+"""CLI per produrre livelli ECMWF, allerte DPC e manifest Colonnello Meteo."""
 
 from __future__ import annotations
 
@@ -10,13 +10,17 @@ import sys
 from time import monotonic
 
 try:
+    from pipeline.allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
     from pipeline.encode import encode_scalar, encode_wind
     from pipeline.grib2 import decode_message, iter_messages
     from pipeline.source_ecmwf import ECMWFSource, normalize_run, run_id
+    from pipeline.source_dpc import DPCSource
 except ModuleNotFoundError:  # esecuzione diretta dalla cartella pipeline
+    from allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
     from encode import encode_scalar, encode_wind
     from grib2 import decode_message, iter_messages
     from source_ecmwf import ECMWFSource, normalize_run, run_id
+    from source_dpc import DPCSource
 
 
 LAYER_PARAMETERS = {
@@ -73,6 +77,31 @@ def _field(payload: bytes):
     return decode_message(messages[0])
 
 
+def update_alerts(destination: Path, previous: dict | None, source: DPCSource | None) -> dict:
+    """Valida tutto prima di sostituire i prodotti; conserva le geometrie invariate."""
+    bulletin, today, tomorrow = (source or DPCSource()).latest_bulletin()
+    alerts = reduce_alerts(today, tomorrow, bulletin)
+    fingerprint = geometry_fingerprint(today)
+    regenerate = (
+        not previous or previous.get("impronta_zone") != fingerprint
+        or not (destination / "zone-allerta.json").is_file()
+    )
+    zones_payload = json_bytes(simplify_zones(today)) if regenerate else None
+    alerts_payload = json_bytes(alerts)
+    # Gli errori di fonte/riduzione non possono sovrascrivere l'ultima coppia buona.
+    if zones_payload is not None:
+        (destination / "zone-allerta.json.tmp").write_bytes(zones_payload)
+    (destination / "allerte.json.tmp").write_bytes(alerts_payload)
+    if zones_payload is not None:
+        (destination / "zone-allerta.json.tmp").replace(destination / "zone-allerta.json")
+    (destination / "allerte.json.tmp").replace(destination / "allerte.json")
+    return {
+        "url": "allerte.json", "zone_url": "zone-allerta.json",
+        "bollettino": bulletin, "emesso": alerts["emesso"],
+        "impronta_zone": fingerprint, "stato": "aggiornato",
+    }
+
+
 def build(
     model: str,
     run: str,
@@ -81,6 +110,7 @@ def build(
     output: str | Path,
     *,
     source: ECMWFSource | None = None,
+    dpc_source: DPCSource | None = None,
 ) -> dict:
     model = "aifs-single" if model == "aifs" else model
     steps = parse_steps(steps_spec, "ifs" if model == "ifs" else "aifs-single")
@@ -89,6 +119,13 @@ def build(
     run_time = source.latest_run(model, step=steps[0]) if run == "latest" else normalize_run(run)
     destination = Path(output)
     destination.mkdir(parents=True, exist_ok=True)
+    previous_alerts = None
+    manifest_path = destination / "manifest.json"
+    if manifest_path.is_file():
+        try:
+            previous_alerts = json.loads(manifest_path.read_text(encoding="utf-8")).get("allerte")
+        except (ValueError, OSError):
+            pass  # Un manifest illeggibile non e' un'ultima voce buona.
 
     parameters = list(
         dict.fromkeys(parameter for layer in layers for parameter in LAYER_PARAMETERS[layer])
@@ -157,6 +194,16 @@ def build(
         ),
         "warnings": warnings,
     }
+    try:
+        manifest["allerte"] = update_alerts(destination, previous_alerts, dpc_source)
+    except Exception as exc:
+        # DPC e' indipendente: anche errori di schema/geometria devono lasciare
+        # pubblicabili i livelli ECMWF, dichiarando l'osservazione nel log e nel manifest.
+        message = f"DPC non aggiornato: {type(exc).__name__}: {exc}"
+        print(f"::warning::{message}", file=sys.stderr)
+        warnings.append({"source": "DPC", "message": message})
+        if previous_alerts:
+            manifest["allerte"] = {**previous_alerts, "stato": "non aggiornato"}
     (destination / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

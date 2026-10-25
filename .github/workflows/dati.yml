@@ -2,7 +2,7 @@ name: dati
 
 # Le corse ECMWF escono a 00/06/12/18 UTC e l'open data arriva ~7-9 h dopo l'ora nominale.
 # Le schedule di GitHub partono spesso in ritardo: qui non e' un problema, il lavoro controlla
-# qual e' l'ultima corsa pubblicata e non fa nulla se e' gia' quella online.
+# qual e' l'ultima corsa pubblicata; pubblica se cambiano ECMWF oppure le allerte DPC.
 on:
   schedule:
     - cron: "40 8,14,20,2 * * *"
@@ -33,17 +33,33 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Corsa gia' pubblicata
+      - name: Recupera manifest e allerte gia' pubblicati
         id: stato
         run: |
-          precedente=$(curl -sf "https://alex12345-dot.github.io/colonnello-meteo-dati/manifest.json" \
-            | python -c 'import sys,json;print(json.load(sys.stdin).get("run",""))' || echo none)
+          mkdir -p "$RUNNER_TEMP/dpc-precedente"
+          if git fetch --depth=1 origin gh-pages; then
+            git show FETCH_HEAD:manifest.json > "$RUNNER_TEMP/dpc-precedente/manifest.json"
+            for nome in allerte.json zone-allerta.json; do
+              if git cat-file -e "FETCH_HEAD:$nome" 2>/dev/null; then
+                git show "FETCH_HEAD:$nome" > "$RUNNER_TEMP/dpc-precedente/$nome"
+              fi
+            done
+          else
+            echo "::warning::gh-pages non recuperato: nessuna copia precedente disponibile"
+          fi
+          precedente=$(python -c 'import json,os;from pathlib import Path;p=Path(os.environ["RUNNER_TEMP"])/"dpc-precedente/manifest.json";print(json.loads(p.read_text()).get("run","") if p.exists() else "none")')
           echo "precedente=$precedente" >> "$GITHUB_OUTPUT"
           echo "ultima online: $precedente"
 
       - name: Costruisci i livelli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           costruisci() {
+            mkdir -p out
+            # Ripristina anche prima del secondo tentativo ECMWF: la copia buona
+            # deve sopravvivere sia al retry sia a un guasto della fonte DPC.
+            cp "$RUNNER_TEMP/dpc-precedente/"*.json out/ 2>/dev/null || true
             python pipeline/build.py --model ifs --run latest \
               --steps "${{ inputs.passi || '0-72' }}" \
               --layers wind10m,t2m,precip --out out/
@@ -58,16 +74,25 @@ jobs:
             costruisci
           fi
 
-      - name: La corsa deve essere nuova
+      - name: Verifica novita' ECMWF o DPC
         run: |
           nuova=$(python -c 'import json;print(json.load(open("out/manifest.json"))["run"])')
           echo "corsa prodotta: $nuova (precedente: ${{ steps.stato.outputs.precedente }})"
           test -n "$nuova"
           echo "NUOVA=$nuova" >> "$GITHUB_ENV"
-          if [ "$nuova" = "${{ steps.stato.outputs.precedente }}" ]; then
-            echo "::notice::corsa gia' online, niente da pubblicare"
-            echo "SALTA=1" >> "$GITHUB_ENV"
-          fi
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          nuovo = json.loads(Path("out/manifest.json").read_text())
+          path = Path(os.environ["RUNNER_TEMP"]) / "dpc-precedente/manifest.json"
+          prima = json.loads(path.read_text()) if path.exists() else {}
+          digest = hashlib.sha256(json.dumps(nuovo.get("allerte"), sort_keys=True).encode()).hexdigest()
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write(f"ALLERTE_SHA={digest}\n")
+              if nuovo["run"] == prima.get("run") and nuovo.get("allerte") == prima.get("allerte"):
+                  print("::notice::corsa ECMWF e allerte DPC gia' online, niente da pubblicare")
+                  env.write("SALTA=1\n")
+          PY
 
       # Un solo commit sempre riscritto: i dati vecchi non servono e il repository resta piccolo.
       - name: Pubblica su Pages
@@ -93,10 +118,14 @@ jobs:
             sleep 20
             if curl -sf "https://alex12345-dot.github.io/colonnello-meteo-dati/manifest.json" -o letto.json \
                && python - <<'PY'
-          import json, os, sys
+          import hashlib, json, os, sys
           m = json.load(open("letto.json"))
           if m.get("run") != os.environ["NUOVA"]:
               print("Pages serve ancora la corsa", m.get("run"), "attesa", os.environ["NUOVA"])
+              sys.exit(3)
+          digest = hashlib.sha256(json.dumps(m.get("allerte"), sort_keys=True).encode()).hexdigest()
+          if digest != os.environ["ALLERTE_SHA"]:
+              print("Pages serve ancora una voce allerte diversa da quella pubblicata")
               sys.exit(3)
           assert m["steps"], "manifest senza passi"
           assert m["grid"]["lon0"] == -180.0, "origine della griglia non dichiarata"
