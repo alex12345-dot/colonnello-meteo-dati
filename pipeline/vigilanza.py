@@ -4,13 +4,22 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from html.parser import HTMLParser
+import json
+import logging
 import math
+from pathlib import Path
 import re
 
 try:
     from pipeline.source_dpc import VIGILANZA_URL, vigilanza_days
 except ModuleNotFoundError:
     from source_dpc import VIGILANZA_URL, vigilanza_days
+
+
+LOGGER = logging.getLogger(__name__)
+PHENOMENA = json.loads(
+    (Path(__file__).parent / "data" / "fenomeni_dpc.json").read_text(encoding="utf-8")
+)["fenomeni"]
 
 
 def _text(value: str) -> str:
@@ -75,25 +84,7 @@ def html_sections(html: str) -> list[dict]:
     return parser.sections
 
 
-def phenomenon_legend(style: dict | None) -> dict[str, str]:
-    """Lo stile DPC puo' contenere solo icone: queste non sono nomi di fenomeni."""
-    result = {}
-    if style is None:
-        return result
-    for group in style.get("style_properties", []):
-        if group.get("propertyKey") != "id_fenomeno":
-            continue
-        for prop in group.get("properties", []):
-            if prop.get("property") not in ("label", "name", "title", "description", "nome", "descrizione"):
-                continue
-            for entry in prop.get("values", []):
-                label = entry.get("value")
-                if "key" in entry and isinstance(label, str) and _text(label):
-                    result[str(entry["key"])] = _text(label)
-    return result
-
-
-def reduce_phenomena(topology: dict, legend: dict[str, str]) -> list[dict]:
+def reduce_phenomena(topology: dict) -> list[dict]:
     if topology.get("type") != "Topology" or not isinstance(topology.get("objects"), dict) or not topology["objects"]:
         raise ValueError("atteso TopoJSON dei fenomeni vigilanza")
     phenomena = []
@@ -114,8 +105,15 @@ def reduce_phenomena(topology: dict, legend: dict[str, str]) -> list[dict]:
             raise ValueError("coordinate vigilanza fuori intervallo")
         if isinstance(identifier, bool) or not re.fullmatch(r"\d+", str(identifier)):
             raise ValueError("id_fenomeno vigilanza non valido")
-        key = str(identifier)
-        phenomena.append({"tipo": legend.get(key, f"fenomeno {key}"), "lat": round(lat, 4), "lon": round(lon, 4)})
+        identifier = int(identifier)
+        description = PHENOMENA.get(str(identifier))
+        if description is None:
+            LOGGER.warning("Fenomeno vigilanza sconosciuto: id=%s", identifier)
+            description = {"categoria": "altro", "nome": f"Fenomeno {identifier}"}
+        phenomena.append({
+            "id": identifier, "categoria": description["categoria"], "nome": description["nome"],
+            "lat": round(lat, 4), "lon": round(lon, 4),
+        })
 
     for geometry in topology["objects"].values():
         visit(geometry)
@@ -123,15 +121,15 @@ def reduce_phenomena(topology: dict, legend: dict[str, str]) -> list[dict]:
 
 
 def reduce_vigilanza(stamp: str, index: dict, topologies: dict, style: dict | None = None) -> dict:
+    # style resta accettato per compatibilita' con la tupla restituita dalla fonte.
     issued = datetime.strptime(stamp, "%Y%m%d").date()
     if index.get("date") != stamp or not isinstance(index.get("name"), str) or not index["name"].strip():
         raise ValueError("data o titolo indice vigilanza non validi")
-    legend = phenomenon_legend(style)
     offsets = {"oggi": 0, "domani": 1, "dopodomani": 2}
     days = [{
         "giorno": day, "data": (issued + timedelta(days=offsets[day])).isoformat(),
         "sezioni": html_sections(entry.get("html_description")),
-        "fenomeni": reduce_phenomena(topologies[day], legend),
+        "fenomeni": reduce_phenomena(topologies[day]),
     } for day, entry in vigilanza_days(index)]
     return {
         "fonte": "Dipartimento della Protezione Civile", "licenza": "CC BY 4.0",

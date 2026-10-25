@@ -1,10 +1,22 @@
 from copy import deepcopy
 import json
+import logging
 
 import pytest
 
 from pipeline.vigilanza import html_sections, reduce_phenomena, reduce_vigilanza
 from pipeline.tests.conftest import FIXTURES
+
+
+EXPECTED_PHENOMENA = {
+    1: ("pioggia", "Piogge sparse o intermittenti"),
+    5: ("temporali", "Rovesci o temporali isolati"),
+    6: ("temporali", "Rovesci o temporali sparsi"),
+    10: ("vento", "Venti forti"),
+    13: ("vento", "Frequenti raffiche"),
+    40: ("mare", "Mare molto mosso"),
+    62: ("temperature", "Temperature basse o in sensibile calo"),
+}
 
 
 @pytest.mark.parametrize("stamp,count", [("20261025", 27), ("20261007", 43)])
@@ -28,7 +40,13 @@ def test_real_bulletins(stamp, count, vig_bulletin):
     original = next(iter(inputs[2]["oggi"]["objects"].values()))["geometries"]
     for point, feature in zip(today["fenomeni"], original, strict=True):
         p = feature["properties"]
-        assert point == {"tipo": f"fenomeno {p['id_fenomeno']}", "lat": round(p["lat"], 4), "lon": round(p["lon"], 4)}
+        identifier = p["id_fenomeno"]
+        category, name = EXPECTED_PHENOMENA[identifier]
+        assert type(point["id"]) is int
+        assert point == {
+            "id": identifier, "categoria": category, "nome": name,
+            "lat": round(p["lat"], 4), "lon": round(p["lon"], 4),
+        }
     if stamp == "20261025":
         assert "Sicilia settentrionale" in today["sezioni"][0]["testo"]
         assert "forti nord-occidentali" in today["sezioni"][3]["testo"]
@@ -53,15 +71,42 @@ def test_third_day_aliases(key, vig_bulletin):
     assert reduce_vigilanza(stamp, index, topologies, style)["giorni"][2]["giorno"] == "dopodomani"
 
 
-def test_legend_labels_and_unmapped_icons(vig_bulletin):
+def test_style_labels_do_not_override_local_legend(vig_bulletin):
     stamp, index, topologies, _ = vig_bulletin()
     style = {"style_properties": [{"propertyKey": "id_fenomeno", "properties": [
         {"property": "icon", "values": [{"key": 5, "value": "url(5.png)"}]},
-        {"property": "label", "values": [{"key": 1, "value": "Pioggia debole"}]},
+        {"property": "label", "values": [{"key": 1, "value": "Nome errato"}]},
     ]}]}
     points = reduce_vigilanza(stamp, index, topologies, style)["giorni"][0]["fenomeni"]
-    assert points[0]["tipo"] == "Pioggia debole"
-    assert any(p["tipo"] == "fenomeno 5" for p in points)
+    assert points == reduce_vigilanza(stamp, index, topologies)["giorni"][0]["fenomeni"]
+    assert points[0]["nome"] == "Piogge sparse o intermittenti"
+    assert any(p["id"] == 5 and p["categoria"] == "temporali" for p in points)
+
+
+@pytest.mark.parametrize("stamp", ["20261025", "20261007"])
+@pytest.mark.parametrize("identifier", [999, "0999"])
+def test_unknown_phenomenon_has_fallback_and_warning(stamp, identifier, vig_bulletin, caplog):
+    inputs = vig_bulletin(stamp)
+    properties = next(iter(inputs[2]["oggi"]["objects"].values()))["geometries"][0]["properties"]
+    properties["id_fenomeno"] = identifier
+    with caplog.at_level(logging.WARNING, logger="pipeline.vigilanza"):
+        points = reduce_vigilanza(*inputs)["giorni"][0]["fenomeni"]
+    assert points[0] == {
+        "id": 999, "categoria": "altro", "nome": "Fenomeno 999",
+        "lat": round(properties["lat"], 4), "lon": round(properties["lon"], 4),
+    }
+    assert type(points[0]["id"]) is int
+    assert len(points) == (27 if stamp == "20261025" else 43)
+    assert any(record.name == "pipeline.vigilanza" and record.levelno == logging.WARNING
+               and "999" in record.getMessage() for record in caplog.records)
+
+
+def test_numeric_string_id_uses_local_legend(vig_bulletin):
+    inputs = vig_bulletin()
+    next(iter(inputs[2]["oggi"]["objects"].values()))["geometries"][0]["properties"]["id_fenomeno"] = "005"
+    point = reduce_vigilanza(*inputs)["giorni"][0]["fenomeni"][0]
+    assert type(point["id"]) is int and point["id"] == 5
+    assert (point["categoria"], point["nome"]) == EXPECTED_PHENOMENA[5]
 
 
 @pytest.mark.parametrize("coordinate", [float("nan"), float("inf"), 91, "45", True])
@@ -75,7 +120,7 @@ def test_invalid_coordinates_rejected(coordinate, vig_bulletin):
 def test_polygon_topology_not_silently_used_as_points():
     topology = json.loads((FIXTURES / "vig_20261025_oggi.topo.json").read_text(encoding="utf-8"))
     with pytest.raises(ValueError, match="Point"):
-        reduce_phenomena(topology, {})
+        reduce_phenomena(topology)
 
 
 @pytest.mark.parametrize("html", [None, "", "<p>nessun titolo</p>", "<b>Mari:</b>"])

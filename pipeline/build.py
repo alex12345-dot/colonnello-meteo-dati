@@ -105,8 +105,8 @@ def update_alerts(destination: Path, previous: dict | None, source: DPCSource | 
 
 
 def update_vigilanza(destination: Path, source: VigilanzaSource | None) -> dict:
-    stamp, index, topologies, style = (source or VigilanzaSource()).latest_bulletin()
-    bulletin = reduce_vigilanza(stamp, index, topologies, style)
+    stamp, index, topologies, _style = (source or VigilanzaSource()).latest_bulletin()
+    bulletin = reduce_vigilanza(stamp, index, topologies)
     payload = json_bytes(bulletin)
     temporary = destination / "vigilanza.json.tmp"
     temporary.write_bytes(payload)

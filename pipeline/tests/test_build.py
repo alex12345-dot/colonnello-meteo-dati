@@ -168,6 +168,27 @@ def test_build_publishes_vigilanza(tmp_path):
     bulletin = json.loads((tmp_path / "vigilanza.json").read_text(encoding="utf-8"))
     assert bulletin["data"] == manifest["vigilanza"]["data"]
     assert len(bulletin["giorni"][0]["fenomeni"]) == 27
+    assert bulletin["giorni"][0]["fenomeni"][0] == {
+        "id": 1, "categoria": "pioggia", "nome": "Piogge sparse o intermittenti",
+        "lat": 38.0706, "lon": 12.627,
+    }
+    assert not (tmp_path / "vigilanza.json.tmp").exists()
+
+
+def test_unknown_vigilanza_phenomenon_is_published_with_warning(tmp_path, vig_bulletin, caplog):
+    class UnknownPhenomenonVigilanza:
+        def latest_bulletin(self):
+            inputs = vig_bulletin()
+            next(iter(inputs[2]["oggi"]["objects"].values()))["geometries"][0]["properties"]["id_fenomeno"] = 999
+            return inputs
+
+    manifest = build("ifs", "2026091300", "12", "t2m", tmp_path,
+                     source=OfflineSource(), vigilanza_source=UnknownPhenomenonVigilanza())
+    assert manifest["vigilanza"]["stato"] == "aggiornato"
+    bulletin = json.loads((tmp_path / "vigilanza.json").read_text(encoding="utf-8"))
+    point = bulletin["giorni"][0]["fenomeni"][0]
+    assert (point["id"], point["categoria"], point["nome"]) == (999, "altro", "Fenomeno 999")
+    assert any(record.levelname == "WARNING" and "999" in record.getMessage() for record in caplog.records)
     assert not (tmp_path / "vigilanza.json.tmp").exists()
 
 
