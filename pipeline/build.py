@@ -9,16 +9,18 @@ from pathlib import Path
 import sys
 from time import monotonic
 
+import numpy as np
+
 try:
     from pipeline.allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
-    from pipeline.encode import encode_scalar, encode_wind
+    from pipeline.encode import encode_masked_scalar, encode_scalar, encode_wind
     from pipeline.grib2 import decode_message, iter_messages
     from pipeline.source_ecmwf import ECMWFSource, normalize_run, run_id
     from pipeline.source_dpc import DPCSource, VigilanzaSource
     from pipeline.vigilanza import reduce_vigilanza
 except ModuleNotFoundError:  # esecuzione diretta dalla cartella pipeline
     from allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
-    from encode import encode_scalar, encode_wind
+    from encode import encode_masked_scalar, encode_scalar, encode_wind
     from grib2 import decode_message, iter_messages
     from source_ecmwf import ECMWFSource, normalize_run, run_id
     from source_dpc import DPCSource, VigilanzaSource
@@ -29,10 +31,36 @@ LAYER_PARAMETERS = {
     "wind10m": ("10u", "10v"),
     "t2m": ("2t",),
     "precip": ("tp",),
-    "msl": ("msl",),
     "gust": ("10fg",),
+    "msl": ("msl",),
+    "tcc": ("tcc",),
+    "rh2m": ("2t", "2d"),
+    "cape": ("mucape",),
+    "snow": ("sf",),
+    "swh": ("swh",),
 }
 OPTIONAL_PARAMETERS = {"10fg"}
+LAYER_UNITS = {
+    "wind10m": "m/s", "t2m": "K", "precip": "m", "gust": "m/s",
+    "msl": "Pa", "tcc": "0-1", "rh2m": "%", "cape": "J/kg",
+    "snow": "m", "swh": "m",
+}
+
+
+def relative_humidity(temperature: np.ndarray, dewpoint: np.ndarray) -> np.ndarray:
+    """Magnus sull'acqua (17.625, 243.04 °C); ingressi in K, uscita in %."""
+    if np.shape(temperature) != np.shape(dewpoint):
+        raise ValueError("temperatura e rugiada devono avere la stessa griglia")
+    t = np.asarray(temperature, dtype=np.float64) - 273.15
+    td = np.asarray(dewpoint, dtype=np.float64) - 273.15
+    return np.clip(100.0 * np.exp(17.625 * td / (243.04 + td) - 17.625 * t / (243.04 + t)), 0, 100)
+
+
+def cloud_fraction(field) -> np.ndarray:
+    """La tabella WMO esprime tcc in %, la tabella locale ECMWF in frazione."""
+    if field.units not in ("%", "0-1"):
+        raise ValueError(f"unita' tcc non supportata: {field.units}")
+    return np.clip(field.values / (100.0 if field.units == "%" else 1.0), 0, 1)
 
 
 def valid_steps(model: str, maximum: int = 360) -> list[int]:
@@ -130,6 +158,8 @@ def build(
     model = "aifs-single" if model == "aifs" else model
     steps = parse_steps(steps_spec, "ifs" if model == "ifs" else "aifs-single")
     layers = parse_layers(layers_spec)
+    if "swh" in layers and model != "ifs":
+        raise ValueError("swh richiede il modello ifs e lo stream wave")
     source = source or ECMWFSource()
     run_time = source.latest_run(model, step=steps[0]) if run == "latest" else normalize_run(run)
     destination = Path(output)
@@ -149,18 +179,28 @@ def build(
         dict.fromkeys(parameter for layer in layers for parameter in LAYER_PARAMETERS[layer])
     )
     optional = OPTIONAL_PARAMETERS.intersection(parameters)
+    oper_parameters = [name for name in parameters if name != "swh"]
     manifest_steps = []
     grid_meta = None
     warnings = []
     for step in steps:
         step_started = monotonic()
         payloads, absent = source.download_parameters(
-            model, run_time, step, parameters, optional=optional
-        )
+            model, run_time, step, oper_parameters, optional=optional
+        ) if oper_parameters else ({}, [])
+        if "swh" in parameters:
+            wave_payloads, wave_absent = source.download_parameters(
+                model, run_time, step, ["swh"], stream="wave"
+            )
+            payloads.update(wave_payloads)
+            absent.extend(wave_absent)
         fields = {name: _field(payload) for name, payload in payloads.items()}
+        step_grid = next((field.grid for field in fields.values()), None)
         for name, field in fields.items():
             if field.parameter != name and not (name == "10fg" and field.parameter == "gust"):
                 raise ValueError(f"byte-range {name} contiene il parametro {field.parameter}")
+            if field.grid != step_grid:
+                raise ValueError(f"griglia {name} diversa dagli altri parametri")
         if absent:
             warnings.append({"step": step, "missing_parameters": absent})
 
@@ -173,11 +213,19 @@ def build(
             path = destination / relative
             if layer == "wind10m":
                 metadata = encode_wind(fields["10u"].values, fields["10v"].values, path)
+            elif layer == "swh":
+                metadata = encode_masked_scalar(fields["swh"].values, path)
+            elif layer == "rh2m":
+                metadata = encode_scalar(relative_humidity(fields["2t"].values, fields["2d"].values), path)
+            elif layer == "tcc":
+                metadata = encode_scalar(cloud_fraction(fields["tcc"]), path)
             else:
                 metadata = encode_scalar(fields[needed[0]].values, path)
-            layer_entries[layer] = {"url": relative.as_posix(), **metadata}
+            if layer == "gust" and fields["10fg"].period_hours is not None:
+                metadata["period_hours"] = fields["10fg"].period_hours
+            layer_entries[layer] = {"url": relative.as_posix(), **metadata, "units": LAYER_UNITS[layer]}
 
-        if grid_meta is None:
+        if grid_meta is None and fields:
             g = next(iter(fields.values())).grid
             grid_meta = {
                 "width": g.ni, "height": g.nj,
@@ -241,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", choices=("ifs", "aifs", "aifs-single"), required=True)
     parser.add_argument("--run", required=True, help="latest oppure YYYYMMDDHH")
     parser.add_argument("--steps", required=True, help="es. 0-144 oppure 0,3,6")
-    parser.add_argument("--layers", required=True, help="wind10m,t2m,precip,msl,gust")
+    parser.add_argument("--layers", required=True, help=",".join(LAYER_PARAMETERS))
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     build(args.model, args.run, args.steps, args.layers, args.out)

@@ -62,7 +62,7 @@ jobs:
             cp "$RUNNER_TEMP/dpc-precedente/"*.json out/ 2>/dev/null || true
             python pipeline/build.py --model ifs --run latest \
               --steps "${{ inputs.passi || '0-72' }}" \
-              --layers wind10m,t2m,precip --out out/
+              --layers wind10m,t2m,precip,gust,msl,tcc,rh2m,cape,snow,swh --out out/
           }
           # Il failover fra i mirror copre il 503 su un host solo; se lo stesso oggetto cade su
           # entrambi si aspetta e si ricomincia UNA volta (lo strozzamento dura minuti, non ore).
@@ -91,7 +91,8 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a") as env:
               env.write(f"ALLERTE_SHA={digest}\n")
               env.write(f"VIGILANZA_SHA={vigilanza_digest}\n")
-              if (nuovo["run"] == prima.get("run") and nuovo.get("allerte") == prima.get("allerte")
+              if (nuovo["run"] == prima.get("run") and nuovo.get("layers") == prima.get("layers")
+                      and nuovo.get("allerte") == prima.get("allerte")
                       and nuovo.get("vigilanza") == prima.get("vigilanza")):
                   print("::notice::corsa ECMWF, allerte e vigilanza DPC gia' online, niente da pubblicare")
                   env.write("SALTA=1\n")

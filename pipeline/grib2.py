@@ -25,16 +25,29 @@ def sign_magnitude(raw: bytes | memoryview) -> int:
     return -(value & ~sign_bit) if value & sign_bit else value
 
 
-# Nome breve dei parametri di superficie usati dalla pipeline. ``tp`` ha un
-# numero nella tabella locale ECMWF, mentre gli altri sono WMO.
+# Nomi brevi dei parametri usati dalla pipeline, incluse le tabelle locali
+# ECMWF per tp, sf e tcc. Per msl e mucape conta anche la superficie indicata.
 PARAMETERS = {
     (0, 0, 0): "2t",
+    (0, 0, 6): "2d",
     (0, 1, 8): "tp",
     (0, 1, 193): "tp",
+    (0, 1, 198): "sf",
     (0, 2, 2): "10u",
     (0, 2, 3): "10v",
     (0, 2, 22): "gust",
     (0, 3, 1): "msl",
+    (0, 3, 0): "msl",  # ECMWF: pressione, superficie 101 (livello del mare)
+    (0, 6, 1): "tcc",  # WMO: percentuale
+    (0, 6, 192): "tcc",  # tabella locale ECMWF: frazione
+    (0, 7, 6): "mucape",  # superficie 17: particella piu' instabile
+    (10, 0, 3): "swh",
+}
+
+PARAMETER_UNITS = {
+    "2t": "K", "2d": "K", "tp": "m", "sf": "m",
+    "10u": "m/s", "10v": "m/s", "gust": "m/s", "msl": "Pa",
+    "tcc": "0-1", "mucape": "J/kg", "swh": "m",
 }
 
 
@@ -87,6 +100,8 @@ class Field:
     binary_scale_factor: int
     decimal_scale_factor: int
     bits_per_value: int
+    units: str = ""
+    period_hours: float | None = None
 
     def at(self, lat: float, lon: float) -> float:
         return float(self.values[self.grid.cell(lat, lon)])
@@ -182,13 +197,20 @@ def _unpack_aec(data: memoryview, count: int, nbits: int, section5: memoryview) 
     if byte_width not in (1, 2, 3, 4):
         raise GribError(f"ampiezza CCSDS non supportata: {nbits} bit")
     flags = int(section5[21])
+    blocksize = int(section5[22])
+    if blocksize == 0:
+        raise GribError("dimensione blocco CCSDS nulla")
+    # L'ultimo blocco AEC puo' includere padding oltre i valori rappresentati.
+    # La bitmap wave rende spesso count non multiplo di blocksize; riservare
+    # soltanto count campioni puo' far fallire libaec (swh reale a +27 h).
+    padded_count = ((count + blocksize - 1) // blocksize) * blocksize
     decoded = imagecodecs.aec_decode(
         data,
         bitspersample=nbits,
         flags=flags,
-        blocksize=int(section5[22]),
+        blocksize=blocksize,
         rsi=struct.unpack_from(">H", section5, 23)[0],
-        out=count * byte_width,
+        out=padded_count * byte_width,
     )
     big_endian = bool(flags & 0x08)  # AEC_DATA_MSB
     if byte_width == 3:
@@ -287,18 +309,28 @@ def decode_message(message: bytes | memoryview) -> Field:
     elif represented != grid.point_count:
         raise GribError("numero di valori incoerente con la griglia")
 
+    parameter = PARAMETERS.get((discipline, category, number), f"{discipline}.{category}.{number}")
+    units = "%" if (discipline, category, number) == (0, 6, 1) else PARAMETER_UNITS.get(parameter, "")
+    period_hours = None
+    if len(section4) >= 58 and struct.unpack_from(">H", section4, 7)[0] == 8:
+        hours_per_unit = {0: 1 / 60, 1: 1, 2: 24, 10: 3, 11: 6, 12: 12, 13: 1 / 3600}
+        if int(section4[48]) in hours_per_unit:
+            period_hours = struct.unpack_from(">I", section4, 49)[0] * hours_per_unit[int(section4[48])]
+
     return Field(
         values=_reshape_scanning(decoded, grid),
         grid=grid,
         discipline=discipline,
         category=category,
         number=number,
-        parameter=PARAMETERS.get((discipline, category, number), f"{discipline}.{category}.{number}"),
+        parameter=parameter,
         data_template=template,
         reference_value=reference,
         binary_scale_factor=binary_scale,
         decimal_scale_factor=decimal_scale,
         bits_per_value=nbits,
+        units=units,
+        period_hours=period_hours,
     )
 
 

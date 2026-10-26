@@ -82,20 +82,22 @@ def candidate_runs(now: datetime | None = None, count: int = 12) -> list[datetim
     return [current - timedelta(hours=6 * index) for index in range(count)]
 
 
-def forecast_path(model: str, run: str | datetime, step: int, extension: str) -> str:
+def forecast_path(model: str, run: str | datetime, step: int, extension: str, *, stream: str = "oper") -> str:
     try:
         model_path = MODEL_PATHS[model]
     except KeyError as exc:
         raise ValueError(f"modello non supportato: {model}") from exc
+    if stream not in ("oper", "wave") or (stream == "wave" and model_path != "ifs"):
+        raise ValueError(f"stream non supportato per {model}: {stream}")
     stamp = normalize_run(run)
     date = stamp.strftime("%Y%m%d")
     cycle = stamp.strftime("%H")
-    filename = f"{date}{cycle}0000-{step}h-oper-fc.{extension}"
-    return f"/{date}/{cycle}z/{model_path}/0p25/oper/{filename}"
+    filename = f"{date}{cycle}0000-{step}h-{stream}-fc.{extension}"
+    return f"/{date}/{cycle}z/{model_path}/0p25/{stream}/{filename}"
 
 
-def forecast_url(model: str, run: str | datetime, step: int, extension: str) -> str:
-    return f"{BASE_URL}{forecast_path(model, run, step, extension)}"
+def forecast_url(model: str, run: str | datetime, step: int, extension: str, *, stream: str = "oper") -> str:
+    return f"{BASE_URL}{forecast_path(model, run, step, extension, stream=stream)}"
 
 
 def parse_index(text: str | bytes) -> list[dict]:
@@ -336,14 +338,14 @@ class ECMWFSource:
             f"richiesta fallita dopo {attempts_made} tentativi: {path}"
         ) from last_error
 
-    def get_index(self, model: str, run: str | datetime, step: int) -> list[dict]:
-        path = forecast_path(model, run, step, "index")
+    def get_index(self, model: str, run: str | datetime, step: int, *, stream: str = "oper") -> list[dict]:
+        path = forecast_path(model, run, step, "index", stream=stream)
         if path not in self._index_cache:
             self._index_cache[path] = parse_index(self._request(path))
         return self._index_cache[path]
 
-    def download_entry(self, model: str, run: str | datetime, step: int, entry: dict) -> bytes:
-        path = forecast_path(model, run, step, "grib2")
+    def download_entry(self, model: str, run: str | datetime, step: int, entry: dict, *, stream: str = "oper") -> bytes:
+        path = forecast_path(model, run, step, "grib2", stream=stream)
         payload = self._request(path, range_header(entry))
         expected = int(entry["_length"])
         if len(payload) != expected:
@@ -358,13 +360,14 @@ class ECMWFSource:
         parameters: Iterable[str],
         *,
         optional: Iterable[str] = (),
+        stream: str = "oper",
     ) -> tuple[dict[str, bytes], list[str]]:
         selected, absent = find_parameters(
-            self.get_index(model, run, step), parameters, optional=optional
+            self.get_index(model, run, step, stream=stream), parameters, optional=optional
         )
         return (
             {
-                name: self.download_entry(model, run, step, entry)
+                name: self.download_entry(model, run, step, entry, stream=stream)
                 for name, entry in selected.items()
             },
             absent,

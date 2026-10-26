@@ -104,6 +104,16 @@ def encode_scalar(field: np.ndarray, path: str | Path) -> dict:
     return {"encoding": "grayscale8", **metadata}
 
 
+def encode_masked_scalar(field: np.ndarray, path: str | Path) -> dict:
+    """Valore nel rosso, alpha nullo per i punti assenti nel GRIB (terra per swh)."""
+    red, metadata = quantize(field)
+    rgba = np.zeros((*red.shape, 4), dtype=np.uint8)
+    rgba[..., 0] = red
+    rgba[..., 3] = np.where(np.isfinite(field), 255, 0)
+    write_png(path, rgba)
+    return {"encoding": "rgba8", "channels": {"value": "R", "mask": "A"}, **metadata}
+
+
 def encode_wind(u: np.ndarray, v: np.ndarray, path: str | Path) -> dict:
     if np.shape(u) != np.shape(v):
         raise ValueError("u e v devono avere la stessa griglia")

@@ -98,6 +98,28 @@ def test_restore_includes_all_dpc_products_before_each_build_attempt():
     assert build_function.index('cp "$RUNNER_TEMP/dpc-precedente/"*.json out/') < build_function.index("python pipeline/build.py")
 
 
+@pytest.mark.parametrize("changed,skip", [(False, True), (True, False)])
+def test_publish_new_layers_even_when_ecmwf_run_and_dpc_are_unchanged(tmp_path, changed, skip):
+    old_layers = ["wind10m", "t2m", "precip"]
+    new_layers = old_layers + ["gust", "msl", "tcc", "rh2m", "cape", "snow", "swh"]
+    (tmp_path / "out").mkdir()
+    (tmp_path / "dpc-precedente").mkdir()
+    previous = {"run": "2026102606", "layers": old_layers}
+    current = {**previous, "layers": new_layers if changed else old_layers}
+    (tmp_path / "dpc-precedente/manifest.json").write_text(json.dumps(previous), encoding="utf-8")
+    (tmp_path / "out/manifest.json").write_text(json.dumps(current), encoding="utf-8")
+    env_file = tmp_path / "env.txt"
+    result = subprocess.run(
+        [sys.executable, "-c", python_blocks()[0]], cwd=tmp_path,
+        env={**os.environ, "RUNNER_TEMP": str(tmp_path), "GITHUB_ENV": str(env_file)},
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert ("SALTA=1" in env_file.read_text(encoding="utf-8")) == skip
+    layers_argument = re.search(r"--layers (\S+)", WORKFLOW.read_text(encoding="utf-8")).group(1)
+    assert layers_argument.split(",") == new_layers
+
+
 @pytest.mark.parametrize("stale", [False, True])
 def test_pages_check_rejects_stale_vigilanza_with_current_run_and_alerts(tmp_path, stale):
     manifest = {"run": "2026102506", "allerte": {"bollettino": "20261025_1326"},

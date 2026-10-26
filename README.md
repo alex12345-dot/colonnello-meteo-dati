@@ -4,6 +4,45 @@ Livelli meteo pronti da disegnare (PNG + `manifest.json`) ricavati da **ECMWF op
 (modello IFS 0,25°) e allerte meteo-idro del **Dipartimento della Protezione Civile**,
 aggiornati piu' volte al giorno da GitHub Actions.
 
+Il workflow pubblica i seguenti livelli, nell'ordine di `manifest.layers`, ogni 3 h
+da 0 a 72 h. Le unita' sono quelle dei valori nel file, prima delle conversioni
+di visualizzazione dell'app.
+
+| Livello | Parametro ECMWF | Unita' | Significato |
+| --- | --- | --- | --- |
+| `wind10m` | `10u`, `10v` | `m/s` | Componenti del vento a 10 m |
+| `t2m` | `2t` | `K` | Temperatura a 2 m |
+| `precip` | `tp` | `m` | Precipitazione cumulata dall'inizio corsa |
+| `gust` | `10fg` | `m/s` | Raffica massima a 10 m nel periodo del GRIB |
+| `msl` | `msl` | `Pa` | Pressione al livello del mare |
+| `tcc` | `tcc` | `0-1` | Copertura nuvolosa totale |
+| `rh2m` | `2t`, `2d` | `%` | Umidita' relativa a 2 m, limitata a 0-100 |
+| `cape` | `mucape` | `J/kg` | Energia convettiva della particella piu' instabile |
+| `snow` | `sf` | `m` | Neve cumulata dall'inizio corsa, equivalente in acqua |
+| `swh` | `swh`, stream `wave` | `m` | Altezza significativa delle onde |
+
+I livelli scalari usano `{url, encoding: "grayscale8", min, max,
+quantization_step, units}`. Il valore ricostruito e' `min + R * quantization_step`.
+`wind10m` conserva il formato RGBA esistente: componenti nei canali R/G,
+maschera in A, minimi/massimi/passi di quantizzazione a due elementi.
+`swh` usa `{url, encoding: "rgba8", channels: {value: "R", mask: "A"},
+min, max, quantization_step, units}`: A=0 per dato assente (terra), A=255 per
+dato valido, incluso un valore di 0 m. Le onde usano la stessa corsa e griglia
+IFS 0.25 degli altri livelli; una griglia diversa causa errore.
+
+`tcc` viene normalizzata in base alle unita' GRIB: percentuali WMO divise per
+100, frazioni ECMWF conservate. `rh2m` usa Magnus sull'acqua con coefficienti
+17.625 e 243.04 °C, applicati a temperatura e rugiada convertite da K a °C;
+20 °C e 10 °C producono 52.5413%. `gust` puo' mancare al passo 0: il livello
+resta assente in quel passo e `warnings` riporta `missing_parameters: ["10fg"]`.
+Il campo aggiuntivo `period_hours`, quando disponibile, dichiara il periodo
+effettivo del massimo: nella corsa verificata e' 1 h, distinto dal passo di
+pubblicazione di 3 h. Non viene costruito un massimo su periodi diversi.
+
+Esecuzione: `python pipeline/build.py --model ifs --run latest --steps 0-72
+--layers wind10m,t2m,precip,gust,msl,tcc,rh2m,cape,snow,swh --out out/`.
+`swh` richiede IFS; lo stream `wave` non viene richiesto ad AIFS.
+
 Origine e licenza dei dati: *ECMWF Open Data © European Centre for Medium-Range Weather
 Forecasts (ECMWF), licensed under CC BY 4.0*. Questo repository ridistribuisce un'elaborazione
 di quei dati alle stesse condizioni.
