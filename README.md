@@ -20,15 +20,32 @@ di visualizzazione dell'app.
 | `cape` | `mucape` | `J/kg` | Energia convettiva della particella piu' instabile |
 | `snow` | `sf` | `m` | Neve cumulata dall'inizio corsa, equivalente in acqua |
 | `swh` | `swh`, stream `wave` | `m` | Altezza significativa delle onde |
+| `precip_rate` | Differenza di `tp` prima della quantizzazione | `mm/h` | Intensita' media nell'intervallo che termina al passo |
 
 I livelli scalari usano `{url, encoding: "grayscale8", min, max,
-quantization_step, units}`. Il valore ricostruito e' `min + R * quantization_step`.
+quantization_step, units}`. Per gli scalari lineari il valore ricostruito e' `min + R * quantization_step`.
 `wind10m` conserva il formato RGBA esistente: componenti nei canali R/G,
 maschera in A, minimi/massimi/passi di quantizzazione a due elementi.
 `swh` usa `{url, encoding: "rgba8", channels: {value: "R", mask: "A"},
 min, max, quantization_step, units}`: A=0 per dato assente (terra), A=255 per
 dato valido, incluso un valore di 0 m. Le onde usano la stessa corsa e griglia
 IFS 0.25 degli altri livelli; una griglia diversa causa errore.
+
+`precip_rate` usa le cumulate originali in float64:
+`max(0, tp[step] - tp[precedente]) * 1000 / interval_hours`, senza download aggiuntivi.
+`precip` e la sua codifica restano invariati.
+La voce del nuovo livello contiene `url: "precip_rate/NNN.png"`, `encoding: "grayscale8"`,
+`transform: "sqrt"`, `min: 0.0`, `max` (radice del massimo del passo),
+`quantization_step: max / 255`, `units: "mm/h"` e `interval_hours` intero.
+Il valore in mm/h si ricostruisce con `(min + R * quantization_step) ** 2`;
+i pixel non finiti sono byte 0. Gli zeri restano esatti.
+`interval_hours` e' la differenza fra i passi effettivamente elaborati:
+nella sequenza IFS completa vale 3 h fino a +144, poi 6 h;
+selezioni discontinue usano l'intervallo fra i passi selezionati.
+Il passo 0 non ha la chiave `precip_rate`. Senza la cumulata del passo precedente
+elaborato, incluso il primo passo di una selezione che non parte da 0,
+il livello resta assente e `warnings` riporta `missing_layers: ["precip_rate"]`.
+Assenza del livello non significa pioggia zero.
 
 `tcc` viene normalizzata in base alle unita' GRIB: percentuali WMO divise per
 100, frazioni ECMWF conservate. `rh2m` usa Magnus sull'acqua con coefficienti
@@ -40,7 +57,7 @@ effettivo del massimo: nella corsa verificata e' 1 h, distinto dal passo di
 pubblicazione di 3 h. Non viene costruito un massimo su periodi diversi.
 
 Esecuzione: `python pipeline/build.py --model ifs --run latest --steps 0-72
---layers wind10m,t2m,precip,gust,msl,tcc,rh2m,cape,snow,swh --out out/`.
+--layers wind10m,t2m,precip,gust,msl,tcc,rh2m,cape,snow,swh,precip_rate --out out/`.
 `swh` richiede IFS; lo stream `wave` non viene richiesto ad AIFS.
 
 Origine e licenza dei dati: *ECMWF Open Data © European Centre for Medium-Range Weather

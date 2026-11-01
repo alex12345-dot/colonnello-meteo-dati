@@ -62,7 +62,7 @@ jobs:
             cp "$RUNNER_TEMP/dpc-precedente/"*.json out/ 2>/dev/null || true
             python pipeline/build.py --model ifs --run latest \
               --steps "${{ inputs.passi || '0-72' }}" \
-              --layers wind10m,t2m,precip,gust,msl,tcc,rh2m,cape,snow,swh --out out/
+              --layers wind10m,t2m,precip,gust,msl,tcc,rh2m,cape,snow,swh,precip_rate --out out/
           }
           # Il failover fra i mirror copre il 503 su un host solo; se lo stesso oggetto cade su
           # entrambi si aspetta e si ricomincia UNA volta (lo strozzamento dura minuti, non ore).

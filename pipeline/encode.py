@@ -104,6 +104,25 @@ def encode_scalar(field: np.ndarray, path: str | Path) -> dict:
     return {"encoding": "grayscale8", **metadata}
 
 
+def encode_precip_rate(field: np.ndarray, path: str | Path) -> dict:
+    """Codifica sqrt(mm/h) con zero esatto anche nei campi interamente piovosi."""
+    values = np.asarray(field, dtype=np.float64)
+    finite = np.isfinite(values)
+    if not finite.any():
+        raise ValueError("campo privo di valori finiti")
+    transformed = np.sqrt(np.maximum(0.0, values[finite]))
+    maximum = float(transformed.max())
+    step = maximum / 255.0
+    pixels = np.zeros(values.shape, dtype=np.uint8)
+    if step > 0.0:
+        pixels[finite] = np.rint(transformed / step).clip(0, 255).astype(np.uint8)
+    write_png(path, pixels)
+    return {
+        "encoding": "grayscale8", "transform": "sqrt",
+        "min": 0.0, "max": maximum, "quantization_step": step,
+    }
+
+
 def encode_masked_scalar(field: np.ndarray, path: str | Path) -> dict:
     """Valore nel rosso, alpha nullo per i punti assenti nel GRIB (terra per swh)."""
     red, metadata = quantize(field)

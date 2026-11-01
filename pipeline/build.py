@@ -13,14 +13,14 @@ import numpy as np
 
 try:
     from pipeline.allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
-    from pipeline.encode import encode_masked_scalar, encode_scalar, encode_wind
+    from pipeline.encode import encode_masked_scalar, encode_precip_rate, encode_scalar, encode_wind
     from pipeline.grib2 import decode_message, iter_messages
     from pipeline.source_ecmwf import ECMWFSource, normalize_run, run_id
     from pipeline.source_dpc import DPCSource, VigilanzaSource
     from pipeline.vigilanza import reduce_vigilanza
 except ModuleNotFoundError:  # esecuzione diretta dalla cartella pipeline
     from allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
-    from encode import encode_masked_scalar, encode_scalar, encode_wind
+    from encode import encode_masked_scalar, encode_precip_rate, encode_scalar, encode_wind
     from grib2 import decode_message, iter_messages
     from source_ecmwf import ECMWFSource, normalize_run, run_id
     from source_dpc import DPCSource, VigilanzaSource
@@ -31,6 +31,7 @@ LAYER_PARAMETERS = {
     "wind10m": ("10u", "10v"),
     "t2m": ("2t",),
     "precip": ("tp",),
+    "precip_rate": ("tp",),
     "gust": ("10fg",),
     "msl": ("msl",),
     "tcc": ("tcc",),
@@ -43,7 +44,7 @@ OPTIONAL_PARAMETERS = {"10fg"}
 LAYER_UNITS = {
     "wind10m": "m/s", "t2m": "K", "precip": "m", "gust": "m/s",
     "msl": "Pa", "tcc": "0-1", "rh2m": "%", "cape": "J/kg",
-    "snow": "m", "swh": "m",
+    "snow": "m", "swh": "m", "precip_rate": "mm/h",
 }
 
 
@@ -183,6 +184,8 @@ def build(
     manifest_steps = []
     grid_meta = None
     warnings = []
+    previous_tp = None
+    previous_tp_step = None
     for step in steps:
         step_started = monotonic()
         payloads, absent = source.download_parameters(
@@ -204,6 +207,12 @@ def build(
         if absent:
             warnings.append({"step": step, "missing_parameters": absent})
 
+        if "precip_rate" in layers and step != 0 and previous_tp is None:
+            warnings.append({
+                "step": step, "missing_layers": ["precip_rate"],
+                "message": "precip_rate assente: tp del passo precedente non disponibile",
+            })
+
         layer_entries = {}
         for layer in layers:
             needed = LAYER_PARAMETERS[layer]
@@ -211,7 +220,20 @@ def build(
                 continue
             relative = Path(layer) / f"{step:03d}.png"
             path = destination / relative
-            if layer == "wind10m":
+            if layer == "precip_rate":
+                if step == 0 or previous_tp is None:
+                    continue
+                if fields["tp"].grid != previous_tp.grid:
+                    raise ValueError("griglia tp diversa dal passo precedente")
+                interval_hours = step - previous_tp_step
+                rate = np.maximum(
+                    0.0,
+                    np.asarray(fields["tp"].values, dtype=np.float64)
+                    - np.asarray(previous_tp.values, dtype=np.float64),
+                ) * 1000.0 / interval_hours
+                metadata = encode_precip_rate(rate, path)
+                metadata["interval_hours"] = interval_hours
+            elif layer == "wind10m":
                 metadata = encode_wind(fields["10u"].values, fields["10v"].values, path)
             elif layer == "swh":
                 metadata = encode_masked_scalar(fields["swh"].values, path)
@@ -224,6 +246,10 @@ def build(
             if layer == "gust" and fields["10fg"].period_hours is not None:
                 metadata["period_hours"] = fields["10fg"].period_hours
             layer_entries[layer] = {"url": relative.as_posix(), **metadata, "units": LAYER_UNITS[layer]}
+
+        if "precip_rate" in layers:
+            previous_tp = fields.get("tp")
+            previous_tp_step = step if previous_tp is not None else None
 
         if grid_meta is None and fields:
             g = next(iter(fields.values())).grid

@@ -101,7 +101,7 @@ def test_restore_includes_all_dpc_products_before_each_build_attempt():
 @pytest.mark.parametrize("changed,skip", [(False, True), (True, False)])
 def test_publish_new_layers_even_when_ecmwf_run_and_dpc_are_unchanged(tmp_path, changed, skip):
     old_layers = ["wind10m", "t2m", "precip"]
-    new_layers = old_layers + ["gust", "msl", "tcc", "rh2m", "cape", "snow", "swh"]
+    new_layers = old_layers + ["gust", "msl", "tcc", "rh2m", "cape", "snow", "swh", "precip_rate"]
     (tmp_path / "out").mkdir()
     (tmp_path / "dpc-precedente").mkdir()
     previous = {"run": "2026102606", "layers": old_layers}
