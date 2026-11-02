@@ -2,7 +2,7 @@ name: dati
 
 # Le corse ECMWF escono a 00/06/12/18 UTC e l'open data arriva ~7-9 h dopo l'ora nominale.
 # Le schedule di GitHub partono spesso in ritardo: qui non e' un problema, il lavoro controlla
-# qual e' l'ultima corsa pubblicata; pubblica se cambiano ECMWF, allerte o vigilanza DPC.
+# qual e' l'ultima corsa pubblicata; pubblica se cambiano ECMWF, ICON-EU o DPC.
 on:
   schedule:
     - cron: "40 8,14,20,2 * * *"
@@ -74,7 +74,7 @@ jobs:
             costruisci
           fi
 
-      - name: Verifica novita' ECMWF o DPC
+      - name: Verifica novita' ECMWF, ICON-EU o DPC
         run: |
           nuova=$(python -c 'import json;print(json.load(open("out/manifest.json"))["run"])')
           echo "corsa prodotta: $nuova (precedente: ${{ steps.stato.outputs.precedente }})"
@@ -88,13 +88,16 @@ jobs:
           prima = json.loads(path.read_text()) if path.exists() else {}
           digest = hashlib.sha256(json.dumps(nuovo.get("allerte"), sort_keys=True).encode()).hexdigest()
           vigilanza_digest = hashlib.sha256(json.dumps(nuovo.get("vigilanza"), sort_keys=True).encode()).hexdigest()
+          precip_eu_digest = hashlib.sha256(json.dumps(nuovo.get("precip_eu"), sort_keys=True).encode()).hexdigest()
           with open(os.environ["GITHUB_ENV"], "a") as env:
               env.write(f"ALLERTE_SHA={digest}\n")
               env.write(f"VIGILANZA_SHA={vigilanza_digest}\n")
+              env.write(f"PRECIP_EU_SHA={precip_eu_digest}\n")
               if (nuovo["run"] == prima.get("run") and nuovo.get("layers") == prima.get("layers")
                       and nuovo.get("allerte") == prima.get("allerte")
+                      and nuovo.get("precip_eu") == prima.get("precip_eu")
                       and nuovo.get("vigilanza") == prima.get("vigilanza")):
-                  print("::notice::corsa ECMWF, allerte e vigilanza DPC gia' online, niente da pubblicare")
+                  print("::notice::corse ECMWF/ICON-EU e DPC gia' online, niente da pubblicare")
                   env.write("SALTA=1\n")
           PY
 
@@ -134,6 +137,10 @@ jobs:
           vigilanza_digest = hashlib.sha256(json.dumps(m.get("vigilanza"), sort_keys=True).encode()).hexdigest()
           if vigilanza_digest != os.environ["VIGILANZA_SHA"]:
               print("Pages serve ancora una voce vigilanza diversa da quella pubblicata")
+              sys.exit(3)
+          precip_eu_digest = hashlib.sha256(json.dumps(m.get("precip_eu"), sort_keys=True).encode()).hexdigest()
+          if precip_eu_digest != os.environ["PRECIP_EU_SHA"]:
+              print("Pages serve ancora una voce precip_eu diversa da quella pubblicata")
               sys.exit(3)
           assert m["steps"], "manifest senza passi"
           assert m["grid"]["lon0"] == -180.0, "origine della griglia non dichiarata"

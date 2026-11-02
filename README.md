@@ -4,6 +4,36 @@ Livelli meteo pronti da disegnare (PNG + `manifest.json`) ricavati da **ECMWF op
 (modello IFS 0,25°) e allerte meteo-idro del **Dipartimento della Protezione Civile**,
 aggiornati piu' volte al giorno da GitHub Actions.
 
+La chiave aggiuntiva `manifest.precip_eu` espone la pioggia oraria **ICON-EU DWD**
+a 0,0625 gradi (~7 km), indipendente dai livelli ECMWF. Fonte:
+[DWD Open Data](https://opendata.dwd.de/weather/nwp/icon-eu/grib/), attribuzione
+`Deutscher Wetterdienst (DWD), ICON-EU`, licenza `CC-BY-4.0`.
+Il blocco contiene esattamente `model`, `run`, `attribution`, `license`, `grid`,
+`encoding`, `transform`, `units`, `interval_hours`, `steps`.
+`model` vale `icon-eu`, `encoding` vale `grayscale8`, `transform` vale `sqrt`,
+`units` vale `mm/h` e `interval_hours` vale 1. La griglia 1377x657 parte da
+`lat0: 70.5`, `lon0: -23.5`, con `dlat` e `dlon` pari a 0.0625 e
+`scanning_mode: 0`: righe nord-sud e colonne ovest-est.
+
+I 72 passi contigui da +1 a +72 h contengono solo `valid_time` (UTC con `Z`),
+`url: "precip_eu/NNN.png"`, `min`, `max`, `quantization_step`.
+Ogni pixel si ricostruisce in mm/h con `(R * quantization_step) ** 2`;
+`max` e `quantization_step` sono nella scala sqrt(mm/h), `min` vale 0.
+Si calcola `max(0, TOT_PREC[k] - TOT_PREC[k-1])` in float64 sui dati DWD in
+kg/m2 (= mm), con cumulata iniziale zero per definizione e nessun PNG al passo 0.
+Le ore si abbinano a ECMWF per `valid_time`, mai per indice.
+
+La CLI include sempre ICON-EU dopo ECMWF; nell'API Python si passa
+`dwd_source=DWDSource()` a `build`. Si sonda con HEAD il passo 072 della corsa
+00/06/12/18 UTC piu' recente, fino a quattro corse precedenti; se HEAD non e'
+supportato si legge un solo byte con GET. Timeout 30 s, quattro tentativi con
+backoff, budget di richiesta 240 s e budget totale ICON-EU 900 s.
+Il workflow ricrea `out/` recuperando solo i JSON: ICON-EU viene quindi
+ricostruito sempre. Un passo mancante, un dato non finito o qualsiasi altro
+errore omette l'intera chiave `precip_eu`, con `::warning::` nel log e voce in
+`warnings`; ECMWF, allerte e vigilanza proseguono. La decisione di pubblicazione
+e la verifica Pages considerano anche `precip_eu`, comprese comparsa e scomparsa.
+
 Il workflow pubblica i seguenti livelli, nell'ordine di `manifest.layers`, ogni 3 h
 da 0 a 72 h. Le unita' sono quelle dei valori nel file, prima delle conversioni
 di visualizzazione dell'app.

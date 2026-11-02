@@ -132,9 +132,59 @@ def test_pages_check_rejects_stale_vigilanza_with_current_run_and_alerts(tmp_pat
     (tmp_path / "letto.json").write_text(json.dumps(manifest), encoding="utf-8")
     result = subprocess.run(
         [sys.executable, "-c", python_blocks()[1]], cwd=tmp_path,
-        env={**os.environ, "NUOVA": manifest["run"], "ALLERTE_SHA": alerts_hash, "VIGILANZA_SHA": vigilanza_hash},
+        env={**os.environ, "NUOVA": manifest["run"], "ALLERTE_SHA": alerts_hash, "VIGILANZA_SHA": vigilanza_hash,
+             "PRECIP_EU_SHA": hashlib.sha256(b"null").hexdigest()},
         capture_output=True, text=True,
     )
     assert result.returncode == (3 if stale else 0), result.stderr
     if stale:
         assert "voce vigilanza diversa" in result.stdout
+
+
+@pytest.mark.parametrize("old_run,new_run,skip", [
+    ("2026110200", "2026110200", True),
+    ("2026110200", "2026110206", False),
+    (None, "2026110200", False),
+    ("2026110200", None, False),
+    (None, None, True),
+])
+def test_publish_icon_eu_changes_with_same_ecmwf_and_dpc(tmp_path, old_run, new_run, skip):
+    (tmp_path / "out").mkdir()
+    (tmp_path / "dpc-precedente").mkdir()
+    previous = {"run": "2026110200", "allerte": {}, "vigilanza": {}}
+    current = {**previous}
+    if old_run is not None:
+        previous["precip_eu"] = {"run": old_run}
+    if new_run is not None:
+        current["precip_eu"] = {"run": new_run}
+    (tmp_path / "dpc-precedente/manifest.json").write_text(json.dumps(previous), encoding="utf-8")
+    (tmp_path / "out/manifest.json").write_text(json.dumps(current), encoding="utf-8")
+    env_file = tmp_path / "env.txt"
+    result = subprocess.run(
+        [sys.executable, "-c", python_blocks()[0]], cwd=tmp_path,
+        env={**os.environ, "RUNNER_TEMP": str(tmp_path), "GITHUB_ENV": str(env_file)},
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    values = env_file.read_text(encoding="utf-8")
+    assert ("SALTA=1" in values) == skip
+    expected = hashlib.sha256(json.dumps(current.get("precip_eu"), sort_keys=True).encode()).hexdigest()
+    assert f"PRECIP_EU_SHA={expected}" in values
+
+
+@pytest.mark.parametrize("stale", [False, True])
+def test_pages_check_rejects_old_icon_eu_with_current_ecmwf_and_dpc(tmp_path, stale):
+    manifest = {"run": "2026110200", "allerte": {}, "vigilanza": {},
+                "precip_eu": {"run": "2026110206"}, "steps": [0], "grid": {"lon0": -180.0}}
+    def digest(key):
+        return hashlib.sha256(json.dumps(manifest.get(key), sort_keys=True).encode()).hexdigest()
+    env = {**os.environ, "NUOVA": manifest["run"], "ALLERTE_SHA": digest("allerte"),
+           "VIGILANZA_SHA": digest("vigilanza"), "PRECIP_EU_SHA": digest("precip_eu")}
+    if stale:
+        manifest["precip_eu"]["run"] = "2026110200"
+    (tmp_path / "letto.json").write_text(json.dumps(manifest), encoding="utf-8")
+    result = subprocess.run([sys.executable, "-c", python_blocks()[1]], cwd=tmp_path,
+                            env=env, capture_output=True, text=True)
+    assert result.returncode == (3 if stale else 0), result.stderr
+    if stale:
+        assert "voce precip_eu diversa" in result.stdout

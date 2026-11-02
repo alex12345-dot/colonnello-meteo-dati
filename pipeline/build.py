@@ -6,6 +6,7 @@ import argparse
 from datetime import timedelta
 import json
 from pathlib import Path
+import shutil
 import sys
 from time import monotonic
 
@@ -17,6 +18,7 @@ try:
     from pipeline.grib2 import decode_message, iter_messages
     from pipeline.source_ecmwf import ECMWFSource, normalize_run, run_id
     from pipeline.source_dpc import DPCSource, VigilanzaSource
+    from pipeline.source_dwd import DWDSource, build_precip_eu
     from pipeline.vigilanza import reduce_vigilanza
 except ModuleNotFoundError:  # esecuzione diretta dalla cartella pipeline
     from allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
@@ -24,6 +26,7 @@ except ModuleNotFoundError:  # esecuzione diretta dalla cartella pipeline
     from grib2 import decode_message, iter_messages
     from source_ecmwf import ECMWFSource, normalize_run, run_id
     from source_dpc import DPCSource, VigilanzaSource
+    from source_dwd import DWDSource, build_precip_eu
     from vigilanza import reduce_vigilanza
 
 
@@ -155,6 +158,7 @@ def build(
     source: ECMWFSource | None = None,
     dpc_source: DPCSource | None = None,
     vigilanza_source: VigilanzaSource | None = None,
+    dwd_source: DWDSource | None = None,
 ) -> dict:
     model = "aifs-single" if model == "aifs" else model
     steps = parse_steps(steps_spec, "ifs" if model == "ifs" else "aifs-single")
@@ -286,6 +290,15 @@ def build(
         ),
         "warnings": warnings,
     }
+    if dwd_source is not None:
+        try:
+            manifest["precip_eu"] = build_precip_eu(destination, dwd_source)
+        except Exception as exc:
+            # Niente PNG orfani pubblicati senza la chiave che li descrive.
+            shutil.rmtree(Path(destination) / "precip_eu", ignore_errors=True)
+            message = f"ICON-EU non pubblicato: {type(exc).__name__}: {exc}"
+            print(f"::warning::{message}", file=sys.stderr)
+            warnings.append({"source": "ICON-EU", "message": message})
     try:
         manifest["vigilanza"] = update_vigilanza(destination, vigilanza_source)
     except Exception as exc:
@@ -318,7 +331,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--layers", required=True, help=",".join(LAYER_PARAMETERS))
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
-    build(args.model, args.run, args.steps, args.layers, args.out)
+    build(args.model, args.run, args.steps, args.layers, args.out, dwd_source=DWDSource())
     return 0
 
 

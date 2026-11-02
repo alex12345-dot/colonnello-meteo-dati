@@ -2,11 +2,14 @@ from pathlib import Path
 from copy import deepcopy
 import json
 
+import pytest
+
 import pipeline.build as build_module
 from pipeline.build import build, parse_steps
 from pipeline.grib2 import iter_messages
 from pipeline.allerte import geometry_fingerprint
 from pipeline.source_dpc import DPCError
+from pipeline.tests.test_source_dwd import synthetic_source
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "ifs-12h-surface.grib2"
@@ -230,3 +233,53 @@ def test_invalid_vigilanza_preserves_good_file(tmp_path, vig_bulletin):
                      source=OfflineSource(), vigilanza_source=InvalidVigilanza())
     assert manifest["vigilanza"] == {**first["vigilanza"], "stato": "non aggiornato"}
     assert (tmp_path / "vigilanza.json").read_bytes() == good
+
+
+def test_build_adds_complete_icon_eu_without_changing_ecmwf(tmp_path):
+    baseline = build("ifs", "2026091300", "12", "t2m,precip", tmp_path / "baseline",
+                     source=OfflineSource())
+    dwd, _ = synthetic_source()
+    manifest = build("ifs", "2026091300", "12", "t2m,precip", tmp_path,
+                     source=OfflineSource(), dwd_source=dwd)
+    assert {key: value for key, value in manifest.items() if key != "precip_eu"} == baseline
+    assert len(manifest["precip_eu"]["steps"]) == 72
+    assert (tmp_path / "precip_eu/072.png").is_file()
+    for name in ("t2m/012.png", "precip/012.png"):
+        assert (tmp_path / name).read_bytes() == (tmp_path / "baseline" / name).read_bytes()
+    assert json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8")) == manifest
+
+
+@pytest.mark.parametrize("failure", ["missing", "decode", "encode", "discovery"])
+def test_icon_eu_failure_omits_entire_block_and_preserves_ecmwf_and_dpc(tmp_path, capsys, monkeypatch, failure):
+    # Una voce precedente non va ripubblicata quando mancano i PNG o la fonte fallisce.
+    (tmp_path / "manifest.json").write_text(json.dumps({"precip_eu": {"run": "old"}}))
+    dwd, _ = synthetic_source(missing=36 if failure == "missing" else None,
+                              payload=b"corrotto" if failure == "decode" else None)
+    if failure == "discovery":
+        def unavailable():
+            raise RuntimeError("sonda non disponibile")
+        dwd.latest_run = unavailable
+    if failure == "encode":
+        import pipeline.source_dwd as dwd_module
+        def bad_encode(*args, **kwargs):
+            raise OSError("disco non disponibile")
+        monkeypatch.setattr(dwd_module, "encode_precip_rate", bad_encode)
+    manifest = build("ifs", "2026091300", "12", "t2m", tmp_path,
+                     source=OfflineSource(), dwd_source=dwd)
+    assert "precip_eu" not in manifest
+    assert manifest["steps"][0]["layers"]["t2m"]["url"] == "t2m/012.png"
+    assert (tmp_path / "t2m/012.png").is_file()
+    assert manifest["allerte"]["stato"] == manifest["vigilanza"]["stato"] == "aggiornato"
+    assert manifest["warnings"][0]["source"] == "ICON-EU"
+    assert "::warning::ICON-EU non pubblicato:" in capsys.readouterr().err
+    assert json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8")) == manifest
+
+
+def test_cli_enables_icon_eu(monkeypatch, tmp_path):
+    source = object()
+    calls = []
+    monkeypatch.setattr(build_module, "DWDSource", lambda: source)
+    monkeypatch.setattr(build_module, "build", lambda *args, **kwargs: calls.append(kwargs))
+    assert build_module.main(["--model", "ifs", "--run", "latest", "--steps", "0-72",
+                              "--layers", "t2m", "--out", str(tmp_path)]) == 0
+    assert calls == [{"dwd_source": source}]
