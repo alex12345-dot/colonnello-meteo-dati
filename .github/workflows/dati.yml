@@ -113,7 +113,13 @@ jobs:
           git config user.email "github-actions@github.com"
           git add -A
           git commit -q -m "dati $(python -c 'import json;print(json.load(open("manifest.json"))["run"])')"
-          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
+          # Di norma 15 s; il 03/11 un push e' rimasto appeso 17 min e poi HTTP 408: limite e ritento.
+          for tentativo in 1 2 3; do
+            timeout 300 git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages && exit 0
+            echo "::warning::push fallito (tentativo $tentativo), ritento"
+            sleep 30
+          done
+          exit 1
 
       # Il controllo deve leggere LA CORSA APPENA PUBBLICATA, non "un manifest qualsiasi":
       # il 16/09 diceva "online: 25 passi della corsa 2026091606" mentre aveva appena
