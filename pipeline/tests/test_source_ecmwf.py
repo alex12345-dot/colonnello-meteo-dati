@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 
@@ -444,6 +445,82 @@ def test_latest_run_stops_at_the_first_published_run():
     run = source.latest_run("ifs", now=datetime(2026, 9, 16, 18, 30, tzinfo=timezone.utc))
     assert run == datetime(2026, 9, 16, 12, tzinfo=timezone.utc)
     assert len(calls) == 3
+
+
+def test_latest_run_falls_back_twice_and_logs_each_candidate(capsys):
+    now = datetime(2026, 11, 19, 22, 24, tzinfo=timezone.utc)
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        if "/06z/" in request.full_url:
+            return _index_ok()
+        raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+
+    source = ECMWFSource(opener=opener, sleeper=lambda _: None)
+    assert source.latest_run("ifs", now=now) == now.replace(hour=6, minute=0)
+    assert [url.split("/20261119/")[1][:3] for url in calls] == ["18z", "18z", "12z", "12z", "06z"]
+    log = capsys.readouterr().err
+    assert "corsa=2026111918 index=+0h HTTP 404 su tutti i mirror" in log
+    assert "corsa=2026111912 index=+0h HTTP 404 su tutti i mirror" in log
+    assert "corsa=2026111906 index=+0h disponibile" in log
+
+
+def test_latest_run_probes_at_most_four_candidates():
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+
+    source = ECMWFSource(opener=opener, sleeper=lambda _: None)
+    with pytest.raises(RunNotAvailable, match="ultime 4 corse"):
+        source.latest_run("ifs", now=datetime(2026, 11, 19, 22, tzinfo=timezone.utc))
+    assert len(calls) == 4 * len(MIRROR_URLS)
+
+
+@pytest.mark.parametrize("head_status", [404, 405, 503, None])
+def test_latest_run_rechecks_throttled_mirror_with_head(head_status, capsys):
+    now = datetime(2026, 11, 19, 22, tzinfo=timezone.utc)
+    calls = []
+
+    def opener(request, timeout):
+        method = request.get_method()
+        calls.append((request.full_url, method))
+        if "/12z/" in request.full_url:
+            return _index_ok()
+        if not request.full_url.startswith(MIRROR_URLS[0]):
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        if method == "HEAD" and head_status is None:
+            raise TimeoutError("mirror irraggiungibile sul HEAD")
+        status = head_status if method == "HEAD" else 503
+        raise HTTPError(request.full_url, status, "simulato", {}, None)
+
+    source = ECMWFSource(opener=opener, attempts=4, sleeper=lambda _: None)
+    if head_status == 404:
+        assert source.latest_run("ifs", now=now) == now.replace(hour=12)
+        assert [method for _, method in calls] == ["GET", "GET", "HEAD", "GET"]
+    else:
+        with pytest.raises(NetworkError):
+            source.latest_run("ifs", now=now)
+        assert all("/18z/" in url for url, _ in calls)
+        assert "disponibilita' indeterminata" in capsys.readouterr().err
+    assert sum(method == "HEAD" for _, method in calls) == 1
+
+
+def test_latest_run_does_not_advance_on_404_and_unreachable_mirror():
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url.startswith(MIRROR_URLS[0]):
+            raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        raise TimeoutError("mirror irraggiungibile")
+
+    source = ECMWFSource(attempts=3, opener=opener, sleeper=lambda _: None)
+    with pytest.raises(NetworkError):
+        source.latest_run("ifs", now=datetime(2026, 11, 19, 22, tzinfo=timezone.utc))
+    assert all("/18z/" in url for url in calls)
 
 
 def test_available_runs_keeps_newer_runs_when_an_older_one_is_throttled():

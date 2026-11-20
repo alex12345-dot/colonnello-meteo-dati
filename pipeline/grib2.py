@@ -41,6 +41,7 @@ PARAMETERS = {
     (0, 6, 1): "tcc",  # WMO: percentuale
     (0, 6, 192): "tcc",  # tabella locale ECMWF: frazione
     (0, 7, 6): "mucape",  # superficie 17: particella piu' instabile
+    (0, 19, 25): "ww",  # tempo significativo ICON-EU
     (10, 0, 3): "swh",
 }
 

@@ -38,6 +38,7 @@ MAX_BACKOFF_SECONDS = 15.0
 # 165,5 s di backoff dei 16 tentativi rapidi su 503, ma impedire che 16 timeout da 30 s
 # monopolizzino il workflow per oltre dieci minuti.
 MAX_REQUEST_SECONDS = 240.0
+LATEST_RUN_COUNT = 4
 MODEL_PATHS = {"ifs": "ifs", "aifs": "aifs-single", "aifs-single": "aifs-single"}
 
 
@@ -51,6 +52,10 @@ class RunNotAvailable(ECMWFError):
 
 class NetworkError(ECMWFError):
     """Errore di rete persistente, distinto da una run assente."""
+
+
+class IndeterminateRun(NetworkError):
+    """Index S3 con GET 503 e mirror ECMWF irraggiungibile."""
 
 
 class RangeNotHonored(NetworkError):
@@ -204,7 +209,19 @@ class ECMWFSource:
             self._connection_failures.clear()
             self._excluded_hosts.clear()
 
-    def _request(self, path: str, headers: dict[str, str] | None = None) -> bytes:
+    def _index_head_is_missing(self, url: str, timeout: float) -> bool:
+        try:
+            with self.opener(Request(url, method="HEAD"), timeout=timeout) as response:
+                status = getattr(response, "status", None)
+                observed = f"HTTP {status}"
+        except HTTPError as exc:
+            status, observed = exc.code, f"HTTP {exc.code} {exc.reason}"
+        except (URLError, TimeoutError, OSError, HTTPException) as exc:
+            status, observed = None, f"{type(exc).__name__}: {exc}"
+        print(f"ECMWF HEAD {url} esito={observed}", file=sys.stderr)
+        return status == 404
+
+    def _request(self, path: str, headers: dict[str, str] | None = None, *, probe_index=False) -> bytes:
         last_error: BaseException | None = None
         started = self.clock()
         attempts_made = 0
@@ -212,6 +229,10 @@ class ECMWFSource:
         missing_hosts: set[str] = set()
         failed_here: set[str] = set()
         retried_excluded: set[str] = set()
+        throttled_hosts: set[str] = set()
+        unavailable_hosts: set[str] = set()
+        s3_get_503 = False
+        checked_with_head: set[str] = set()
         retry_attempts = 0
         while retry_attempts < self.attempts:
             remaining = self.max_elapsed - (self.clock() - started)
@@ -252,6 +273,19 @@ class ECMWFSource:
             if host in self._excluded_hosts:
                 retried_excluded.add(host)
             url = f"{host}{path}"
+            # Un GET strozzato puo' nascondere un index ancora assente. Dopo il backoff,
+            # chiediamo una volta lo stato senza corpo se un altro mirror ha gia' detto 404.
+            if probe_index and missing_hosts and host in throttled_hosts and host not in checked_with_head:
+                attempts_made += 1
+                checked_with_head.add(host)
+                if self._index_head_is_missing(url, min(self.timeout, remaining)):
+                    missing_hosts.add(host)
+                    if all(candidate in missing_hosts for candidate in MIRROR_URLS):
+                        raise RunNotAvailable(path) from last_error
+                    continue
+                remaining = self.max_elapsed - (self.clock() - started)
+                if remaining <= 0:
+                    break
             request = Request(url, headers=headers or {})
             wait = min(self.backoff * (2**retry_attempts), MAX_BACKOFF_SECONDS)
             attempts_made += 1
@@ -276,6 +310,9 @@ class ECMWFSource:
                 # era escluso perche' irraggiungibile, e non lo e' piu'.
                 self._connection_failures.pop(host, None)
                 self._excluded_hosts.discard(host)
+                unavailable_hosts.discard(host)
+                if host == BASE_URL:
+                    s3_get_503 = exc.code == 503
                 failed_here.add(host)
                 if exc.code == 404:
                     last_error = exc
@@ -299,6 +336,8 @@ class ECMWFSource:
                     )
                     raise NetworkError(f"HTTP {exc.code} non ritentabile: {url}") from exc
                 last_error = exc
+                if exc.code in (429, 503):
+                    throttled_hosts.add(host)
                 # Il 503 arriva anche alla prima richiesta di una sessione (misurato: 55 % di
                 # 503 a una richiesta al secondo), quindi si insiste subito; se il server
                 # manda un Retry-After e' lui a dire quanto aspettare e quello vince.
@@ -318,6 +357,7 @@ class ECMWFSource:
                 last_error = exc
                 observed = f"eccezione={type(exc).__name__}: {exc}"
                 failed_here.add(host)
+                unavailable_hosts.add(host)
                 self._record_connection_failure(host)
             retry_attempts += 1
             remaining = self.max_elapsed - (self.clock() - started)
@@ -334,14 +374,19 @@ class ECMWFSource:
             mirror_index += 1
             if chosen_wait > 0:
                 self.sleeper(chosen_wait)
-        raise NetworkError(
+        error_type = (
+            IndeterminateRun if probe_index and s3_get_503 and MIRROR_URLS[1] in unavailable_hosts
+            else NetworkError
+        )
+        raise error_type(
             f"richiesta fallita dopo {attempts_made} tentativi: {path}"
         ) from last_error
 
-    def get_index(self, model: str, run: str | datetime, step: int, *, stream: str = "oper") -> list[dict]:
+    def get_index(self, model: str, run: str | datetime, step: int, *, stream: str = "oper",
+                  probe_index: bool = False) -> list[dict]:
         path = forecast_path(model, run, step, "index", stream=stream)
         if path not in self._index_cache:
-            self._index_cache[path] = parse_index(self._request(path))
+            self._index_cache[path] = parse_index(self._request(path, probe_index=probe_index))
         return self._index_cache[path]
 
     def download_entry(self, model: str, run: str | datetime, step: int, entry: dict, *, stream: str = "oper") -> bytes:
@@ -381,31 +426,45 @@ class ECMWFSource:
         now: datetime | None = None,
         count: int = 12,
         stop_at_first: bool = False,
+        not_before: datetime | None = None,
     ) -> list[datetime]:
-        # Le candidate sono in ordine dalla piu' recente. Con `stop_at_first` ci si ferma alla
-        # prima pubblicata: chiedere anche le altre undici e' solo traffico verso un bucket che
-        # risponde "503 Slow Down", e il 16/09/2026 due giri sono morti su una corsa di due
-        # giorni prima quando quella buona era gia' stata trovata.
         available = []
+        indeterminate = None
         for run in candidate_runs(now, count):
+            if not_before is not None and run < not_before:
+                break
+            label = f"ECMWF modello={model} corsa={run_id(run)} index=+{step}h"
             try:
-                self.get_index(model, run, step)
+                if not self.get_index(model, run, step, probe_index=True):
+                    raise NetworkError("index vuoto")
             except RunNotAvailable:
+                print(f"{label} HTTP 404 su tutti i mirror, proseguo la ricerca", file=sys.stderr)
                 continue
-            except NetworkError:
+            except NetworkError as exc:
+                print(f"{label} disponibilita' indeterminata: {exc}", file=sys.stderr)
                 # Una corsa piu' vecchia irraggiungibile non toglie niente a quella gia' trovata.
                 if available:
                     break
+                if not_before is not None and isinstance(exc, IndeterminateRun):
+                    indeterminate = exc
+                    print(f"{label}: cerco una corsa confermata fino a {run_id(not_before)}",
+                          file=sys.stderr)
+                    continue
                 raise
+            print(f"{label} disponibile", file=sys.stderr)
             available.append(run)
             if stop_at_first:
                 break
+        if not available and indeterminate is not None:
+            raise indeterminate
         return available
 
-    def latest_run(self, model: str, *, step: int = 0, now: datetime | None = None) -> datetime:
-        runs = self.available_runs(model, step=step, now=now, stop_at_first=True)
+    def latest_run(self, model: str, *, step: int = 0, now: datetime | None = None,
+                   not_before: datetime | None = None) -> datetime:
+        runs = self.available_runs(model, step=step, now=now, count=LATEST_RUN_COUNT,
+                                   stop_at_first=True, not_before=not_before)
         if not runs:
-            raise RunNotAvailable(f"nessuna run pubblicata per {model}")
+            raise RunNotAvailable(f"nessun index pubblicato per {model} nelle ultime {LATEST_RUN_COUNT} corse")
         return runs[0]
 
 

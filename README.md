@@ -1,8 +1,8 @@
 # Dati di Colonnello Meteo
 
-Livelli meteo pronti da disegnare (PNG + `manifest.json`) ricavati da **ECMWF open data**
-(modello IFS 0,25°) e allerte meteo-idro del **Dipartimento della Protezione Civile**,
-aggiornati piu' volte al giorno da GitHub Actions.
+Livelli meteo pronti da disegnare (PNG + `manifest.json`) ricavati da **ECMWF Open Data**
+(IFS 0,25°) e **DWD Open Data** (ICON-EU 0,0625°), con allerte e vigilanza del
+**Dipartimento della Protezione Civile**, aggiornati più volte al giorno da GitHub Actions.
 
 La chiave aggiuntiva `manifest.precip_eu` espone la pioggia oraria **ICON-EU DWD**
 a 0,0625 gradi (~7 km), indipendente dai livelli ECMWF. Fonte:
@@ -28,11 +28,33 @@ La CLI include sempre ICON-EU dopo ECMWF; nell'API Python si passa
 00/06/12/18 UTC piu' recente, fino a quattro corse precedenti; se HEAD non e'
 supportato si legge un solo byte con GET. Timeout 30 s, quattro tentativi con
 backoff, budget di richiesta 240 s e budget totale ICON-EU 900 s.
-Il workflow ricrea `out/` recuperando solo i JSON: ICON-EU viene quindi
-ricostruito sempre. Un passo mancante, un dato non finito o qualsiasi altro
+Il workflow rigenera i 72 PNG di `precip_eu` a ogni esecuzione.
+Un passo mancante, un dato non finito o qualsiasi altro
 errore omette l'intera chiave `precip_eu`, con `::warning::` nel log e voce in
 `warnings`; ECMWF, allerte e vigilanza proseguono. La decisione di pubblicazione
 e la verifica Pages considerano anche `precip_eu`, comprese comparsa e scomparsa.
+
+Con `--temporali-eu`, usato dal workflow, si controlla `ww` a +48 h per scegliere
+la corsa dei temporali indipendentemente dalla pioggia.
+`manifest.temporali_eu` pubblica la corsa reale, l'ora di generazione,
+le 48 validità orarie da +1 a +48 h, il `bbox`, la griglia e `url`.
+Il file `temporali_eu/AAAAMMGGHH.png` è un PNG a scala di grigi a 8 bit.
+I passi sono disposti su sei colonne e otto righe di tasselli da 433 × 273
+pixel. Il ritaglio va da 35° a 52° N e da 6° W a 21° E, righe da nord a
+sud e colonne da ovest a est. I byte 0–2 sono le classi meteo e il byte
+255 indica dato assente. `class_counts` e `unknown_ww_counts` contano
+rispettivamente le celle per classe e i codici sorgente non gestiti.
+
+`class_labels` descrive le tre classi `nessun temporale`, `temporale` e
+`temporale forte`. Per ICON-EU il DWD documenta `96` come temporale forte
+senza graupel o grandine. `hail_diagnostic: false` dichiara il limite nel manifest.
+Un eventuale `99` viene contato come inatteso. Ogni passo `ww` riassume il meteo
+dell’ora che si conclude alla validità indicata.
+[Interpretazione del tempo nei modelli ICON, DWD, §2](https://www.dwd.de/DE/forschung/wettervorhersage/num_modellierung/01_num_vorhersagemodelle/01c_wetterinterpretation/wetter_interpretation.pdf?__blob=publicationFile&v=6).
+In caso di guasto si conservano il PNG e la voce precedenti, con un warning
+che indica la corsa effettiva. `stale` segnala corse di almeno 12 ore al momento
+della build. Il workflow confronta la voce anche su Pages.
+Il dettaglio di lettura è in `_claude_work/FORMATO-temporali-eu.md`.
 
 Il workflow pubblica i seguenti livelli, nell'ordine di `manifest.layers`, ogni 3 h
 da 0 a 72 h. Le unita' sono quelle dei valori nel file, prima delle conversioni
@@ -89,6 +111,18 @@ pubblicazione di 3 h. Non viene costruito un massimo su periodi diversi.
 Esecuzione: `python pipeline/build.py --model ifs --run latest --steps 0-72
 --layers wind10m,t2m,precip,gust,msl,tcc,rh2m,cape,snow,swh,precip_rate --out out/`.
 `swh` richiede IFS; lo stream `wave` non viene richiesto ad AIFS.
+
+`--run latest` controlla fino a quattro corse ECMWF, dalla più recente, e
+arretra quando tutti i mirror restituiscono HTTP 404 per l'indice. Un errore
+di connessione lascia indeterminata la disponibilità. Se un mirror risponde
+404 e un altro limita il GET, una sonda HEAD può confermare l'assenza.
+Con GET 503 da S3 e `data.ecmwf.int` irraggiungibile, il log indica la corsa
+indeterminata. Se è nota la corsa online, la ricerca può proseguire fino a quel
+ciclo incluso. Senza una candidata almeno altrettanto recente, il workflow
+conserva la corsa pubblicata e i relativi PNG. Il riuso della stessa corsa
+richiede che i livelli e passi richiesti siano completi. Una corsa parziale viene
+rielaborata per recuperare i livelli mancanti. Senza novità da ECMWF, ICON-EU o
+DPC, il workflow termina con successo e salta la pubblicazione.
 
 Origine e licenza dei dati: *ECMWF Open Data © European Centre for Medium-Range Weather
 Forecasts (ECMWF), licensed under CC BY 4.0*. Questo repository ridistribuisce un'elaborazione
@@ -151,10 +185,8 @@ valido, con `stato: "non aggiornato"`, warning nel log e nel manifest; allerte e
 ECMWF proseguono. Al primo errore senza copia precedente la voce resta assente.
 
 Per conservare il prodotto tra esecuzioni occorre mantenere nella directory di output
-sia il manifest sia `vigilanza.json`. Il workflow attuale ripristina solo i file delle
-allerte e confronta soltanto corsa ECMWF e voce `allerte`: il ripristino della vigilanza
-e la pubblicazione dei suoi soli aggiornamenti richiedono un intervento distinto
-sul workflow.
+sia il manifest sia `vigilanza.json`. Il workflow ripristina i JSON DPC e pubblica
+anche un aggiornamento della sola vigilanza.
 
 Verifica offline: `python -m pytest pipeline/tests -q`. I test vietano la rete e usano
 le fixture DPC del 25/10/2026 e 07/10/2026; per domani e dopodomani i punti mancanti

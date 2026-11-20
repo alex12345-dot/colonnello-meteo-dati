@@ -113,6 +113,38 @@ def test_latest_run_stops_after_four_previous_cycles():
     assert calls[-1].full_url == forecast_url("2026110100", 72)
 
 
+def test_latest_run_with_ww_requires_both_products_in_the_same_cycle(capsys):
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        if request.full_url in (forecast_url("2026110212", 48, "ww"), forecast_url("2026110206", 72)):
+            raise http_error(request, 404)
+        return response()
+
+    source = DWDSource(opener=opener)
+    assert source.latest_run(now=RUN.replace(hour=13), include_ww=True) == RUN
+    assert calls == [forecast_url("2026110212", 72), forecast_url("2026110212", 48, "ww"),
+                     forecast_url("2026110206", 72), forecast_url(RUN, 72), forecast_url(RUN, 48, "ww")]
+    assert "corsa=2026110212 ww=+48h HTTP 404" in capsys.readouterr().err
+
+
+def test_latest_run_with_ww_distinguishes_connection_failure_from_404():
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        if "/ww/" in request.full_url:
+            raise URLError("DWD irraggiungibile")
+        return response()
+
+    source = DWDSource(attempts=2, opener=opener, sleeper=lambda _: None)
+    with pytest.raises(DWDError) as raised:
+        source.latest_run(now=RUN, include_ww=True)
+    assert not isinstance(raised.value, RunNotAvailable)
+    assert calls == [forecast_url(RUN, 72), forecast_url(RUN, 48, "ww"), forecast_url(RUN, 48, "ww")]
+
+
 def test_head_fallback_reads_only_one_byte_even_if_range_ignored():
     calls = []
 

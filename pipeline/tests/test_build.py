@@ -1,6 +1,8 @@
 from pathlib import Path
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 import json
+from urllib.error import HTTPError
 
 import pytest
 
@@ -9,7 +11,10 @@ from pipeline.build import build, parse_steps
 from pipeline.grib2 import iter_messages
 from pipeline.allerte import geometry_fingerprint
 from pipeline.source_dpc import DPCError
+from pipeline.source_ecmwf import BASE_URL, ECMWFSource, IndeterminateRun, RunNotAvailable
 from pipeline.tests.test_source_dwd import synthetic_source
+from pipeline.tests.test_source_ecmwf import _index_ok
+from pipeline.tests.test_windy_layers import SyntheticSource
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "ifs-12h-surface.grib2"
@@ -27,6 +32,112 @@ class OfflineSource:
 def test_native_model_steps():
     assert parse_steps("0-12", "ifs") == [0, 3, 6, 9, 12]
     assert parse_steps("0-12", "aifs-single") == [0, 6, 12]
+
+
+def test_latest_reuses_published_ecmwf_files_without_downloading(tmp_path, capsys):
+    old, out = tmp_path / "published", tmp_path / "out"
+    first = build("ifs", "2026111912", "12", "t2m", old, source=OfflineSource())
+    out.mkdir()
+    (out / "manifest.json").write_bytes((old / "manifest.json").read_bytes())
+
+    class PublishedRun:
+        def latest_run(self, model, *, step, not_before):
+            assert (model, step) == ("ifs", 12)
+            assert not_before == datetime(2026, 11, 19, 12, tzinfo=timezone.utc)
+            return not_before
+
+        def download_parameters(self, *args, **kwargs):
+            pytest.fail("una corsa gia' pubblicata non richiede altri GRIB ECMWF")
+
+    second = build("ifs", "latest", "12", "t2m", out, source=PublishedRun(), previous_output=old)
+    assert second == first
+    assert (out / "t2m/012.png").read_bytes() == (old / "t2m/012.png").read_bytes()
+    assert "nessuna novita' ECMWF" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("requested", ["latest", "2026111906"])
+def test_build_keeps_published_ecmwf_when_candidate_is_older(tmp_path, requested, capsys):
+    old, out = tmp_path / "published", tmp_path / "out"
+    first = build("ifs", "2026111912", "12", "t2m", old, source=OfflineSource())
+
+    class OlderRun:
+        def latest_run(self, model, *, step, not_before):
+            return not_before - timedelta(hours=6)
+
+        def download_parameters(self, *args, **kwargs):
+            pytest.fail("la corsa precedente a quella online va scartata prima del download")
+
+    second = build("ifs", requested, "0-12", "t2m,precip", out, source=OlderRun(), previous_output=old)
+    assert second["run"] == first["run"] == "2026111912"
+    assert second["steps"] == first["steps"] and second["layers"] == first["layers"]
+    assert (out / "t2m/012.png").read_bytes() == (old / "t2m/012.png").read_bytes()
+    assert "2026111906, precedente a quella pubblicata" in second["warnings"][0]["message"]
+    assert "Conservata la corsa 2026111912" in capsys.readouterr().err
+
+    (old / "t2m/012.png").unlink()
+    with pytest.raises(RunNotAvailable, match="precedente a quella pubblicata"):
+        build("ifs", requested, "12", "t2m", out, source=OlderRun(), previous_output=old)
+
+
+@pytest.mark.parametrize("published_hour", [None, 6, 12, 18])
+def test_build_limits_indeterminate_ecmwf_fallback_to_publication(tmp_path, published_hour, capsys):
+    old, out = tmp_path / "published", tmp_path / "out"
+    if published_hour is not None:
+        first = build("ifs", f"20261119{published_hour:02d}", "12", "t2m", old, source=OfflineSource())
+    calls, downloaded = [], []
+
+    def opener(request, timeout):
+        assert request.get_method() == "GET"
+        cycle = int(request.full_url.split("/20261119/")[1][:2])
+        calls.append(cycle)
+        if cycle == 12:
+            return _index_ok()
+        assert cycle == 18
+        if request.full_url.startswith(BASE_URL):
+            raise HTTPError(request.full_url, 503, "Slow Down", {}, None)
+        raise TimeoutError("data.ecmwf.int irraggiungibile")
+
+    class MirrorSource(ECMWFSource):
+        def latest_run(self, model, **options):
+            return super().latest_run(model, now=datetime(2026, 11, 19, 22, tzinfo=timezone.utc), **options)
+
+        def download_parameters(self, model, run, *args, **kwargs):
+            downloaded.append(run.hour)
+            return OfflineSource().download_parameters(model, run, *args, **kwargs)
+
+    source = MirrorSource(opener=opener, attempts=4, sleeper=lambda _: None)
+    if published_hour is None:
+        with pytest.raises(IndeterminateRun):
+            build("ifs", "latest", "12", "t2m", out, source=source, previous_output=old)
+        assert set(calls) == {18} and downloaded == []
+        assert not (out / "manifest.json").exists()
+        return
+    manifest = build("ifs", "latest", "12", "t2m", out, source=source, previous_output=old)
+    assert manifest["run"] == f"20261119{max(12, published_hour):02d}"
+    assert set(calls) == ({18} if published_hour == 18 else {18, 12})
+    assert "corsa=2026111918 index=+12h disponibilita' indeterminata" in capsys.readouterr().err
+    assert downloaded == ([12] if published_hour == 6 else [])
+    if published_hour >= 12:
+        assert manifest["steps"] == first["steps"]
+        assert (out / "t2m/012.png").read_bytes() == (old / "t2m/012.png").read_bytes()
+
+
+def test_latest_completes_missing_ecmwf_gust_in_published_cycle(tmp_path):
+    old, out = tmp_path / "published", tmp_path / "out"
+    first = build("ifs", "2026111912", "0,3", "msl,gust", old, source=SyntheticSource(missing_gust=True))
+    assert first["warnings"] == [{"step": 0, "missing_parameters": ["10fg"]}]
+    assert "gust" not in first["steps"][0]["layers"] and "gust" in first["steps"][1]["layers"]
+
+    class CompleteSource(SyntheticSource):
+        def latest_run(self, model, *, step, not_before):
+            return not_before
+
+    source = CompleteSource()
+    second = build("ifs", "latest", "0,3", "msl,gust", out, source=source, previous_output=old)
+    assert second["run"] == first["run"] and second["warnings"] == []
+    assert "gust" in second["steps"][0]["layers"]
+    assert (out / "gust/000.png").is_file()
+    assert (out / "gust/003.png").read_bytes() == (old / "gust/003.png").read_bytes()
 
 
 def test_offline_build_writes_layers_and_manifest(tmp_path):

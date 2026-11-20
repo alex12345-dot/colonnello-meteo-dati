@@ -1,9 +1,9 @@
-"""Pioggia oraria ICON-EU DWD: HTTP limitato, bz2 e GRIB2 senza ecCodes."""
+"""Dati ICON-EU DWD: HTTP limitato, bz2 e GRIB2 senza ecCodes."""
 
 from __future__ import annotations
 
 import bz2
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from http.client import HTTPException
 from pathlib import Path
 import sys
@@ -16,15 +16,16 @@ import numpy as np
 try:
     from pipeline.encode import encode_precip_rate
     from pipeline.grib2 import decode_message, iter_messages
-    from pipeline.source_ecmwf import normalize_run, run_id, _retry_after_seconds
+    from pipeline.source_ecmwf import candidate_runs, normalize_run, run_id, _retry_after_seconds
 except ModuleNotFoundError:
     from encode import encode_precip_rate
     from grib2 import decode_message, iter_messages
-    from source_ecmwf import normalize_run, run_id, _retry_after_seconds
+    from source_ecmwf import candidate_runs, normalize_run, run_id, _retry_after_seconds
 
 
 BASE_URL = "https://opendata.dwd.de/weather/nwp/icon-eu/grib"
 TRANSIENT_STATUS = frozenset({408, 429, 500, 502, 503, 504})
+TERMINAL_STEPS = {"tot_prec": 72, "ww": 48}
 
 
 class DWDError(RuntimeError):
@@ -35,15 +36,15 @@ class RunNotAvailable(DWDError):
     pass
 
 
-def forecast_url(run: str | datetime, step: int) -> str:
+def forecast_url(run: str | datetime, step: int, variable: str = "tot_prec") -> str:
     stamp = normalize_run(run)
     if stamp.hour not in (0, 6, 12, 18) or stamp.minute or stamp.second:
         raise ValueError("corsa ICON-EU non valida")
-    if not 0 <= step <= 72:
-        raise ValueError("passo ICON-EU fuori 0..72")
+    if variable not in TERMINAL_STEPS or not 0 <= step <= TERMINAL_STEPS[variable]:
+        raise ValueError(f"variabile o passo ICON-EU non supportato: {variable} +{step}h")
     return (
-        f"{BASE_URL}/{stamp:%H}/tot_prec/"
-        f"icon-eu_europe_regular-lat-lon_single-level_{run_id(stamp)}_{step:03d}_TOT_PREC.grib2.bz2"
+        f"{BASE_URL}/{stamp:%H}/{variable}/"
+        f"icon-eu_europe_regular-lat-lon_single-level_{run_id(stamp)}_{step:03d}_{variable.upper()}.grib2.bz2"
     )
 
 
@@ -123,41 +124,64 @@ class DWDSource:
                 self.sleeper(wait)
         raise DWDError(f"richiesta ICON-EU fallita: {url}") from last_error
 
-    def latest_run(self, *, now: datetime | None = None) -> datetime:
-        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
-        current = current.replace(hour=current.hour // 6 * 6, minute=0, second=0, microsecond=0)
+    def latest_run(self, *, now: datetime | None = None, include_ww: bool = False) -> datetime:
+        variables = ("tot_prec", "ww") if include_ww else ("tot_prec",)
+        return self._latest_run(variables, now)
+
+    def latest_weather_run(self, *, now: datetime | None = None) -> datetime:
+        return self._latest_run(("ww",), now)
+
+    def _latest_run(self, variables: tuple[str, ...], now: datetime | None) -> datetime:
         # Corsa nominale corrente e fino a quattro corse precedenti.
-        for index in range(5):
-            run = current - timedelta(hours=6 * index)
-            try:
-                self._request(forecast_url(run, 72), method="HEAD", probe=True)
+        for run in candidate_runs(now, count=5):
+            for variable in variables:
+                step = TERMINAL_STEPS[variable]
+                label = f"ICON-EU corsa={run_id(run)} {variable}=+{step}h"
+                try:
+                    self._request(forecast_url(run, step, variable), method="HEAD", probe=True)
+                except RunNotAvailable:
+                    print(f"{label} HTTP 404, proseguo la ricerca", file=sys.stderr)
+                    break
+                except DWDError as exc:
+                    print(f"{label} disponibilita' indeterminata: {exc}", file=sys.stderr)
+                    raise
+                print(f"{label} disponibile", file=sys.stderr)
+            else:
                 return run
-            except RunNotAvailable:
-                continue
         raise RunNotAvailable("nessuna corsa ICON-EU completa entro quattro corse precedenti")
 
-    def download_total(self, run, step):
-        payload = bz2.decompress(self._request(forecast_url(run, step)))
+    def _download_field(self, run, step, variable):
+        payload = bz2.decompress(self._request(forecast_url(run, step, variable)))
         messages = list(iter_messages(payload))
         if len(messages) != 1:
             raise DWDError(f"atteso un GRIB ICON-EU, trovati {len(messages)}")
         field = decode_message(messages[0])
+        self.check_budget()
+        return field
+
+    def download_total(self, run, step):
+        field = self._download_field(run, step, "tot_prec")
         # TOT_PREC in kg/m2 = mm, senza conversione x1000. Il file vero del DWD usa 0.1.52
         # (tasso con elaborazione statistica "accumulo", valori cumulati in kg/m2; verificato
         # sulla corsa 2026110200 passo 006: max 54 mm in 6 h); 0.1.8 e' la forma WMO classica.
         if (field.discipline, field.category, field.number) not in ((0, 1, 8), (0, 1, 52)):
             raise DWDError(f"parametro ICON-EU diverso da TOT_PREC: "
                            f"{field.discipline}.{field.category}.{field.number}")
-        self.check_budget()
+        return field
+
+    def download_weather(self, run, step):
+        field = self._download_field(run, step, "ww")
+        if field.parameter != "ww":
+            raise DWDError(f"parametro ICON-EU diverso da ww: {field.parameter}")
         return field
 
 
-def north_south(field):
+def north_south(field, *, allow_missing=False):
     grid = field.grid
     if grid.scanning_mode != 64:
         raise DWDError(f"scanning ICON-EU inatteso: {grid.scanning_mode}")
     values = np.asarray(field.values, dtype=np.float64)[::-1, :]
-    if values.shape != (grid.nj, grid.ni) or not np.isfinite(values).all():
+    if values.shape != (grid.nj, grid.ni) or (not allow_missing and not np.isfinite(values).all()):
         raise DWDError("dominio ICON-EU incompleto")
     return values, {
         "width": grid.ni, "height": grid.nj, "lat0": grid.lat2,
@@ -166,9 +190,9 @@ def north_south(field):
     }
 
 
-def build_precip_eu(destination: Path, source: DWDSource) -> dict:
+def build_precip_eu(destination: Path, source: DWDSource, *, run: datetime | None = None) -> dict:
     """Il workflow ricrea out: rigenera tutti i PNG prima di esporre il blocco."""
-    run = normalize_run(source.latest_run())
+    run = normalize_run(run if run is not None else source.latest_run())
     previous = None  # TOT_PREC[0] = 0 per definizione, nessun PNG al passo 0.
     grid_meta = None
     entries = []

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import shutil
@@ -16,17 +16,19 @@ try:
     from pipeline.allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
     from pipeline.encode import encode_masked_scalar, encode_precip_rate, encode_scalar, encode_wind
     from pipeline.grib2 import decode_message, iter_messages
-    from pipeline.source_ecmwf import ECMWFSource, normalize_run, run_id
+    from pipeline.source_ecmwf import ECMWFSource, IndeterminateRun, RunNotAvailable, normalize_run, run_id
     from pipeline.source_dpc import DPCSource, VigilanzaSource
     from pipeline.source_dwd import DWDSource, build_precip_eu
+    from pipeline.temporali_eu import STALE_AFTER_HOURS, build_temporali_eu
     from pipeline.vigilanza import reduce_vigilanza
 except ModuleNotFoundError:  # esecuzione diretta dalla cartella pipeline
     from allerte import geometry_fingerprint, json_bytes, reduce_alerts, simplify_zones
     from encode import encode_masked_scalar, encode_precip_rate, encode_scalar, encode_wind
     from grib2 import decode_message, iter_messages
-    from source_ecmwf import ECMWFSource, normalize_run, run_id
+    from source_ecmwf import ECMWFSource, IndeterminateRun, RunNotAvailable, normalize_run, run_id
     from source_dpc import DPCSource, VigilanzaSource
     from source_dwd import DWDSource, build_precip_eu
+    from temporali_eu import STALE_AFTER_HOURS, build_temporali_eu
     from vigilanza import reduce_vigilanza
 
 
@@ -159,6 +161,8 @@ def build(
     dpc_source: DPCSource | None = None,
     vigilanza_source: VigilanzaSource | None = None,
     dwd_source: DWDSource | None = None,
+    previous_output: str | Path | None = None,
+    temporali_eu: bool = False,
 ) -> dict:
     model = "aifs-single" if model == "aifs" else model
     steps = parse_steps(steps_spec, "ifs" if model == "ifs" else "aifs-single")
@@ -166,20 +170,170 @@ def build(
     if "swh" in layers and model != "ifs":
         raise ValueError("swh richiede il modello ifs e lo stream wave")
     source = source or ECMWFSource()
-    run_time = source.latest_run(model, step=steps[0]) if run == "latest" else normalize_run(run)
-    destination = Path(output)
+    destination = Path(output).resolve()
     destination.mkdir(parents=True, exist_ok=True)
-    previous_alerts = None
-    previous_vigilanza = None
+    assets = Path(previous_output).resolve() if previous_output is not None else destination
+    previous = {}
     manifest_path = destination / "manifest.json"
-    if manifest_path.is_file():
+    previous_manifest = assets / "manifest.json"
+    if previous_manifest.is_file():
         try:
-            previous = json.loads(manifest_path.read_text(encoding="utf-8"))
-            previous_alerts = previous.get("allerte")
-            previous_vigilanza = previous.get("vigilanza")
+            data = json.loads(previous_manifest.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                previous = data
         except (ValueError, OSError):
             pass  # Un manifest illeggibile non e' un'ultima voce buona.
+    previous_alerts = previous.get("allerte")
+    previous_vigilanza = previous.get("vigilanza")
+    manifest = select_ecmwf(previous, model, run, steps, layers, assets, destination, source)
+    warnings = manifest["warnings"]
+    if dwd_source is not None:
+        try:
+            manifest["precip_eu"] = build_precip_eu(destination, dwd_source)
+        except Exception as exc:
+            # Niente PNG orfani pubblicati senza la chiave che li descrive.
+            shutil.rmtree(destination / "precip_eu", ignore_errors=True)
+            message = f"ICON-EU non pubblicato: {type(exc).__name__}: {exc}"
+            print(f"::warning::{message}", file=sys.stderr)
+            warnings.append({"source": "ICON-EU", "message": message})
+        if temporali_eu:
+            update_temporali_eu(manifest, previous.get("temporali_eu"), dwd_source, assets, destination)
+    try:
+        manifest["vigilanza"] = update_vigilanza(destination, vigilanza_source)
+    except Exception as exc:
+        message = f"DPC vigilanza non aggiornato: {type(exc).__name__}: {exc}"
+        print(f"::warning::{message}", file=sys.stderr)
+        warnings.append({"source": "DPC vigilanza", "message": message})
+        if previous_vigilanza:
+            manifest["vigilanza"] = {**previous_vigilanza, "stato": "non aggiornato"}
+    try:
+        manifest["allerte"] = update_alerts(destination, previous_alerts, dpc_source)
+    except Exception as exc:
+        message = f"DPC non aggiornato: {type(exc).__name__}: {exc}"
+        print(f"::warning::{message}", file=sys.stderr)
+        warnings.append({"source": "DPC", "message": message})
+        if previous_alerts:
+            manifest["allerte"] = {**previous_alerts, "stato": "non aggiornato"}
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return manifest
 
+
+def copy_product(relative: str, assets: Path, destination: Path) -> None:
+    if assets != destination:
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(assets / relative, target)
+
+
+def update_temporali_eu(manifest, previous, source, assets, destination):
+    if isinstance(previous, dict):
+        stamp = previous.get("run", "")
+        relative = previous.get("url")
+        has_previous = (isinstance(stamp, str) and len(stamp) == 10 and stamp.isascii()
+                        and stamp.isdecimal() and relative == f"temporali_eu/{stamp}.png"
+                        and (assets / relative).is_file())
+    else:
+        has_previous = False
+    try:
+        run = source.latest_weather_run()
+        candidate = run_id(run)
+        if has_previous and stamp == candidate:
+            copy_product(relative, assets, destination)
+            manifest["temporali_eu"] = previous
+            print(f"ICON-EU temporali_eu corsa={stamp} gia' pubblicata", file=sys.stderr)
+        elif has_previous and stamp > candidate:
+            raise ValueError(f"trovata corsa {candidate}, precedente a quella pubblicata")
+        else:
+            manifest["temporali_eu"] = build_temporali_eu(destination, source, run=run)
+    except Exception as exc:
+        message = f"ICON-EU temporali_eu non aggiornato: {type(exc).__name__}: {exc}"
+        if has_previous:
+            copy_product(relative, assets, destination)
+            manifest["temporali_eu"] = previous
+            message += f". Conservata la corsa {stamp}"
+        print(f"::warning::{message}", file=sys.stderr)
+        manifest["warnings"].append({"source": "ICON-EU temporali_eu", "message": message})
+    if entry := manifest.get("temporali_eu"):
+        age = datetime.now(timezone.utc) - normalize_run(entry["run"])
+        stale = age >= timedelta(hours=STALE_AFTER_HOURS)
+        manifest["temporali_eu"] = {**entry, "stale": stale}
+        if stale:
+            hours = age.total_seconds() / 3600
+            message = f"ICON-EU temporali_eu corsa={entry['run']} dato vecchio: {hours:.1f} h (soglia {STALE_AFTER_HOURS} h)"
+            print(f"::warning::{message}", file=sys.stderr)
+            manifest["warnings"].append({"source": "ICON-EU temporali_eu", "message": message})
+
+
+def select_ecmwf(previous, model, run, steps, layers, assets, destination, source):
+    stamp = previous.get("run")
+    published = None
+    if isinstance(stamp, str) and len(stamp) == 10 and stamp.isascii() and stamp.isdecimal():
+        try:
+            published = normalize_run(stamp)
+        except ValueError:
+            pass  # Una data non valida non impone un limite alla ricerca.
+    try:
+        if run == "latest":
+            floor = {"not_before": published} if published is not None else {}
+            candidate = source.latest_run(model, step=steps[0], **floor)
+        else:
+            candidate = normalize_run(run)
+        if published is not None and candidate < published:
+            raise RunNotAvailable(f"trovata corsa {run_id(candidate)}, precedente a quella pubblicata")
+    except (RunNotAvailable, IndeterminateRun) as exc:
+        if published is None:
+            raise
+        retained = reuse_ecmwf(previous, previous.get("model"), published, None,
+                               previous.get("layers", []), assets, destination, allow_partial=True)
+        if retained is None:
+            raise
+        message = f"ECMWF: {exc}. Conservata la corsa {stamp}"
+        print(f"::warning::{message}", file=sys.stderr)
+        retained["warnings"].append({"source": "ECMWF", "message": message})
+        return retained
+    if run == "latest":
+        reused = reuse_ecmwf(previous, model, candidate, steps, layers, assets, destination)
+        if reused is not None:
+            return reused
+    return build_ecmwf(model, candidate, steps, layers, destination, source)
+
+
+def reuse_ecmwf(previous, model, run_time, steps, layers, assets, destination, *, allow_partial=False):
+    stamp = run_id(run_time)
+    if (previous.get("model") != model or previous.get("run") != stamp
+            or previous.get("layers") != layers or not previous.get("grid")):
+        return None
+    try:
+        requested = set(layers)
+        published_steps = [entry["step"] for entry in previous["steps"]]
+        if not requested.issubset(LAYER_PARAMETERS) or (steps is not None and published_steps != steps):
+            return None
+        files = []
+        for index, entry in enumerate(previous["steps"]):
+            present = set(entry["layers"])
+            expected = requested - {"precip_rate"} if index == 0 else requested
+            if not present.issubset(requested) or (not allow_partial and not expected.issubset(present)):
+                return None
+            for layer, metadata in entry["layers"].items():
+                relative = f"{layer}/{entry['step']:03d}.png"
+                if metadata["url"] != relative or not (assets / relative).is_file():
+                    return None
+                files.append(relative)
+        reused = {key: previous[key] for key in ("model", "run", "grid", "layers", "steps", "license", "attribution")}
+        reused["warnings"] = [item for item in previous["warnings"] if "step" in item]
+    except (KeyError, TypeError, AttributeError):
+        return None
+    if not files:
+        return None
+    for relative in files:
+        copy_product(relative, assets, destination)
+    print(f"ECMWF corsa={stamp} gia' pubblicata, nessuna novita' ECMWF", file=sys.stderr)
+    return reused
+
+
+def build_ecmwf(model, run_time, steps, layers, destination, source):
     parameters = list(
         dict.fromkeys(parameter for layer in layers for parameter in LAYER_PARAMETERS[layer])
     )
@@ -277,7 +431,7 @@ def build(
             file=sys.stderr,
         )
 
-    manifest = {
+    return {
         "model": model,
         "run": run_id(run_time),
         "grid": grid_meta,
@@ -290,39 +444,6 @@ def build(
         ),
         "warnings": warnings,
     }
-    if dwd_source is not None:
-        try:
-            manifest["precip_eu"] = build_precip_eu(destination, dwd_source)
-        except Exception as exc:
-            # Niente PNG orfani pubblicati senza la chiave che li descrive.
-            shutil.rmtree(Path(destination) / "precip_eu", ignore_errors=True)
-            message = f"ICON-EU non pubblicato: {type(exc).__name__}: {exc}"
-            print(f"::warning::{message}", file=sys.stderr)
-            warnings.append({"source": "ICON-EU", "message": message})
-    try:
-        manifest["vigilanza"] = update_vigilanza(destination, vigilanza_source)
-    except Exception as exc:
-        message = f"DPC vigilanza non aggiornato: {type(exc).__name__}: {exc}"
-        print(f"::warning::{message}", file=sys.stderr)
-        warnings.append({"source": "DPC vigilanza", "message": message})
-        if previous_vigilanza:
-            manifest["vigilanza"] = {**previous_vigilanza, "stato": "non aggiornato"}
-    try:
-        manifest["allerte"] = update_alerts(destination, previous_alerts, dpc_source)
-    except Exception as exc:
-        # DPC e' indipendente: anche errori di schema/geometria devono lasciare
-        # pubblicabili i livelli ECMWF, dichiarando l'osservazione nel log e nel manifest.
-        message = f"DPC non aggiornato: {type(exc).__name__}: {exc}"
-        print(f"::warning::{message}", file=sys.stderr)
-        warnings.append({"source": "DPC", "message": message})
-        if previous_alerts:
-            manifest["allerte"] = {**previous_alerts, "stato": "non aggiornato"}
-    (destination / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-    return manifest
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", choices=("ifs", "aifs", "aifs-single"), required=True)
@@ -330,8 +451,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--steps", required=True, help="es. 0-144 oppure 0,3,6")
     parser.add_argument("--layers", required=True, help=",".join(LAYER_PARAMETERS))
     parser.add_argument("--out", required=True)
+    parser.add_argument("--previous-output", type=Path, help="cartella dei file gia' pubblicati")
+    parser.add_argument("--temporali-eu", action="store_true", help="includi il campo ww ICON-EU")
     args = parser.parse_args(argv)
-    build(args.model, args.run, args.steps, args.layers, args.out, dwd_source=DWDSource())
+    options = {"dwd_source": DWDSource()}
+    if args.previous_output is not None:
+        options["previous_output"] = args.previous_output
+    if args.temporali_eu:
+        options["temporali_eu"] = True
+    build(args.model, args.run, args.steps, args.layers, args.out, **options)
     return 0
 
 
