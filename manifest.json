@@ -1,0 +1,3678 @@
+{
+  "model": "ifs",
+  "run": "2026112100",
+  "grid": {
+    "width": 1440,
+    "height": 721,
+    "lat0": 90.0,
+    "lon0": -180.0,
+    "dlat": 0.25,
+    "dlon": 0.25,
+    "scanning_mode": 0
+  },
+  "layers": [
+    "wind10m",
+    "t2m",
+    "precip",
+    "gust",
+    "msl",
+    "tcc",
+    "rh2m",
+    "cape",
+    "snow",
+    "swh",
+    "precip_rate"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "valid_time": "2026-11-21T00:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/000.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -24.060592651367188,
+            -19.620468139648438
+          ],
+          "max": [
+            20.751907348632812,
+            18.879531860351562
+          ],
+          "quantization_step": [
+            0.17573529411764705,
+            0.15098039215686274
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/000.png",
+          "encoding": "grayscale8",
+          "min": 226.00506591796875,
+          "max": 312.50506591796875,
+          "quantization_step": 0.3392156862745098,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/000.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0,
+          "quantization_step": 0.0,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/000.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0,
+          "quantization_step": 0.0,
+          "period_hours": 0,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/000.png",
+          "encoding": "grayscale8",
+          "min": 94322.875,
+          "max": 104226.875,
+          "quantization_step": 38.83921568627451,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/000.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/000.png",
+          "encoding": "grayscale8",
+          "min": 4.828460001978366,
+          "max": 100.0,
+          "quantization_step": 0.37322172548243776,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/000.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 7024.0,
+          "quantization_step": 27.545098039215688,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/000.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0,
+          "quantization_step": 0.0,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/000.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.00439855083823204,
+          "max": 9.957523550838232,
+          "quantization_step": 0.03903186274509804,
+          "units": "m"
+        }
+      }
+    },
+    {
+      "step": 3,
+      "valid_time": "2026-11-21T03:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/003.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -23.566864013671875,
+            -20.173477172851562
+          ],
+          "max": [
+            21.089385986328125,
+            18.732772827148438
+          ],
+          "quantization_step": [
+            0.17512254901960783,
+            0.15257352941176472
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/003.png",
+          "encoding": "grayscale8",
+          "min": 229.27500915527344,
+          "max": 315.02500915527344,
+          "quantization_step": 0.3362745098039216,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/003.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.20068359375,
+          "quantization_step": 0.0007869944852941177,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/003.png",
+          "encoding": "grayscale8",
+          "min": 0.18035876750946045,
+          "max": 36.86785876750946,
+          "quantization_step": 0.14387254901960783,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/003.png",
+          "encoding": "grayscale8",
+          "min": 94489.375,
+          "max": 104093.375,
+          "quantization_step": 37.66274509803922,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/003.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/003.png",
+          "encoding": "grayscale8",
+          "min": 4.723555304478819,
+          "max": 100.0,
+          "quantization_step": 0.3736331164530242,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/003.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5496.0,
+          "quantization_step": 21.55294117647059,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/003.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0157318115234375,
+          "quantization_step": 6.169337852328431e-05,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/003.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.0044083185493946075,
+          "max": 9.457533318549395,
+          "quantization_step": 0.03707107843137255,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/003.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 8.178907705189001,
+          "quantization_step": 0.03207414786348628,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 6,
+      "valid_time": "2026-11-21T06:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/006.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -24.008865356445312,
+            -22.185150146484375
+          ],
+          "max": [
+            20.303634643554688,
+            18.752349853515625
+          ],
+          "quantization_step": [
+            0.17377450980392156,
+            0.16053921568627452
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/006.png",
+          "encoding": "grayscale8",
+          "min": 227.32794189453125,
+          "max": 316.32794189453125,
+          "quantization_step": 0.34901960784313724,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/006.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.3017578125,
+          "quantization_step": 0.0011833639705882352,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/006.png",
+          "encoding": "grayscale8",
+          "min": 0.16718530654907227,
+          "max": 35.97968530654907,
+          "quantization_step": 0.14044117647058824,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/006.png",
+          "encoding": "grayscale8",
+          "min": 94690.875,
+          "max": 103826.875,
+          "quantization_step": 35.82745098039216,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/006.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/006.png",
+          "encoding": "grayscale8",
+          "min": 2.216370221651563,
+          "max": 100.0,
+          "quantization_step": 0.3834652148170527,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/006.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5408.0,
+          "quantization_step": 21.2078431372549,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/006.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0305938720703125,
+          "quantization_step": 0.00011997596890318627,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/006.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004396144300699234,
+          "max": 8.9418961443007,
+          "quantization_step": 0.03504901960784314,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/006.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.633728036048056,
+          "quantization_step": 0.026014619749208063,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 9,
+      "valid_time": "2026-11-21T09:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/009.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.831390380859375,
+            -21.177322387695312
+          ],
+          "max": [
+            25.731109619140625,
+            18.166427612304688
+          ],
+          "quantization_step": [
+            0.19044117647058822,
+            0.15428921568627452
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/009.png",
+          "encoding": "grayscale8",
+          "min": 226.3771514892578,
+          "max": 314.8771514892578,
+          "quantization_step": 0.34705882352941175,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/009.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.3153076171875,
+          "quantization_step": 0.0012365004595588235,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/009.png",
+          "encoding": "grayscale8",
+          "min": 0.18763834238052368,
+          "max": 35.437638342380524,
+          "quantization_step": 0.13823529411764707,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/009.png",
+          "encoding": "grayscale8",
+          "min": 94934.5625,
+          "max": 103718.5625,
+          "quantization_step": 34.44705882352941,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/009.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/009.png",
+          "encoding": "grayscale8",
+          "min": 2.800453115177241,
+          "max": 100.0,
+          "quantization_step": 0.38117469366597156,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/009.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5480.0,
+          "quantization_step": 21.49019607843137,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/009.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.042083740234375,
+          "quantization_step": 0.00016503427542892158,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/009.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.00439491868019104,
+          "max": 8.473144918680191,
+          "quantization_step": 0.03321078431372549,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/009.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 7.28980631029842,
+          "quantization_step": 0.028587475726660472,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 12,
+      "valid_time": "2026-11-21T12:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/012.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.603607177734375,
+            -21.369796752929688
+          ],
+          "max": [
+            29.802642822265625,
+            17.317703247070312
+          ],
+          "quantization_step": [
+            0.20551470588235293,
+            0.1517156862745098
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/012.png",
+          "encoding": "grayscale8",
+          "min": 226.28570556640625,
+          "max": 314.53570556640625,
+          "quantization_step": 0.346078431372549,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/012.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.3839111328125,
+          "quantization_step": 0.0015055338541666667,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/012.png",
+          "encoding": "grayscale8",
+          "min": 0.22693222761154175,
+          "max": 39.41443222761154,
+          "quantization_step": 0.1536764705882353,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/012.png",
+          "encoding": "grayscale8",
+          "min": 95225.375,
+          "max": 103733.375,
+          "quantization_step": 33.36470588235294,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/012.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/012.png",
+          "encoding": "grayscale8",
+          "min": 4.254424668787806,
+          "max": 100.0,
+          "quantization_step": 0.3754728444361263,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/012.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5504.0,
+          "quantization_step": 21.584313725490198,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/012.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0517578125,
+          "quantization_step": 0.0002029718137254902,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/012.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004396319389343262,
+          "max": 7.973146319389343,
+          "quantization_step": 0.03125,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/012.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.458123316477732,
+          "quantization_step": 0.02532597379010875,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 15,
+      "valid_time": "2026-11-21T15:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/015.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.370468139648438,
+            -21.824554443359375
+          ],
+          "max": [
+            31.098281860351562,
+            17.706695556640625
+          ],
+          "quantization_step": [
+            0.2096813725490196,
+            0.15502450980392157
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/015.png",
+          "encoding": "grayscale8",
+          "min": 225.7184600830078,
+          "max": 312.4684600830078,
+          "quantization_step": 0.34019607843137256,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/015.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4237060546875,
+          "quantization_step": 0.0016615923713235294,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/015.png",
+          "encoding": "grayscale8",
+          "min": 0.17964118719100952,
+          "max": 42.05464118719101,
+          "quantization_step": 0.1642156862745098,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/015.png",
+          "encoding": "grayscale8",
+          "min": 95265.0,
+          "max": 103729.0,
+          "quantization_step": 33.1921568627451,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/015.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/015.png",
+          "encoding": "grayscale8",
+          "min": 3.665798069530634,
+          "max": 100.0,
+          "quantization_step": 0.3777811840410563,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/015.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5384.0,
+          "quantization_step": 21.113725490196078,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/015.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.06182861328125,
+          "quantization_step": 0.00024246515012254903,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/015.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.00439172238111496,
+          "max": 7.941891722381115,
+          "quantization_step": 0.031127450980392157,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/015.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.601446929461752,
+          "quantization_step": 0.025888027174359812,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 18,
+      "valid_time": "2026-11-21T18:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/018.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -23.645965576171875,
+            -22.783645629882812
+          ],
+          "max": [
+            28.791534423828125,
+            19.528854370117188
+          ],
+          "quantization_step": [
+            0.20563725490196078,
+            0.1659313725490196
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/018.png",
+          "encoding": "grayscale8",
+          "min": 225.6045684814453,
+          "max": 312.8545684814453,
+          "quantization_step": 0.34215686274509804,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/018.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4251708984375,
+          "quantization_step": 0.001667336856617647,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/018.png",
+          "encoding": "grayscale8",
+          "min": 0.16524285078048706,
+          "max": 41.22774285078049,
+          "quantization_step": 0.1610294117647059,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/018.png",
+          "encoding": "grayscale8",
+          "min": 95308.375,
+          "max": 103768.375,
+          "quantization_step": 33.1764705882353,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/018.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/018.png",
+          "encoding": "grayscale8",
+          "min": 3.3486361967148173,
+          "max": 100.0,
+          "quantization_step": 0.3790249560913144,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/018.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5848.0,
+          "quantization_step": 22.933333333333334,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/018.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.0733642578125,
+          "quantization_step": 0.0002877029718137255,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/018.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004394907504320145,
+          "max": 8.45751990750432,
+          "quantization_step": 0.03314950980392157,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/018.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 8.32437669713675,
+          "quantization_step": 0.03264461449857549,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 21,
+      "valid_time": "2026-11-21T21:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/021.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -23.1514892578125,
+            -21.999343872070312
+          ],
+          "max": [
+            27.0672607421875,
+            21.969406127929688
+          ],
+          "quantization_step": [
+            0.19693627450980392,
+            0.1724264705882353
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/021.png",
+          "encoding": "grayscale8",
+          "min": 225.9235382080078,
+          "max": 310.9235382080078,
+          "quantization_step": 0.3333333333333333,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/021.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4677734375,
+          "quantization_step": 0.001834405637254902,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/021.png",
+          "encoding": "grayscale8",
+          "min": 0.18064075708389282,
+          "max": 38.86814075708389,
+          "quantization_step": 0.1517156862745098,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/021.png",
+          "encoding": "grayscale8",
+          "min": 95422.125,
+          "max": 103942.125,
+          "quantization_step": 33.411764705882355,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/021.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/021.png",
+          "encoding": "grayscale8",
+          "min": 3.045339135933888,
+          "max": 100.0,
+          "quantization_step": 0.38021435632967104,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/021.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 6376.0,
+          "quantization_step": 25.00392156862745,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/021.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.08172607421875,
+          "quantization_step": 0.0003204944087009804,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/021.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.0043824948370456696,
+          "max": 8.895007494837046,
+          "quantization_step": 0.034865196078431374,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/021.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.436033408992426,
+          "quantization_step": 0.025239346701931082,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 24,
+      "valid_time": "2026-11-22T00:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/024.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.775863647460938,
+            -19.976715087890625
+          ],
+          "max": [
+            24.942886352539062,
+            22.804534912109375
+          ],
+          "quantization_step": [
+            0.18713235294117647,
+            0.16776960784313724
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/024.png",
+          "encoding": "grayscale8",
+          "min": 226.3244171142578,
+          "max": 314.5744171142578,
+          "quantization_step": 0.346078431372549,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/024.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4683837890625,
+          "quantization_step": 0.0018367991727941176,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/024.png",
+          "encoding": "grayscale8",
+          "min": 0.22482848167419434,
+          "max": 37.224828481674194,
+          "quantization_step": 0.1450980392156863,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/024.png",
+          "encoding": "grayscale8",
+          "min": 95488.9375,
+          "max": 104108.9375,
+          "quantization_step": 33.80392156862745,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/024.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/024.png",
+          "encoding": "grayscale8",
+          "min": 5.047284505161811,
+          "max": 100.0,
+          "quantization_step": 0.37236359017583603,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/024.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5576.0,
+          "quantization_step": 21.866666666666667,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/024.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.09197998046875,
+          "quantization_step": 0.00036070580575980394,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/024.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.0043916888535022736,
+          "max": 8.926266688853502,
+          "quantization_step": 0.034987745098039216,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/024.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.125053146027931,
+          "quantization_step": 0.024019816258933065,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 27,
+      "valid_time": "2026-11-22T03:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/027.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -21.563079833984375,
+            -20.521133422851562
+          ],
+          "max": [
+            25.186920166015625,
+            21.416366577148438
+          ],
+          "quantization_step": [
+            0.18333333333333332,
+            0.1644607843137255
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/027.png",
+          "encoding": "grayscale8",
+          "min": 229.30934143066406,
+          "max": 318.80934143066406,
+          "quantization_step": 0.3509803921568627,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/027.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4737548828125,
+          "quantization_step": 0.0018578622855392156,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/027.png",
+          "encoding": "grayscale8",
+          "min": 0.15495437383651733,
+          "max": 34.59245437383652,
+          "quantization_step": 0.13504901960784313,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/027.png",
+          "encoding": "grayscale8",
+          "min": 95405.125,
+          "max": 104485.125,
+          "quantization_step": 35.6078431372549,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/027.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/027.png",
+          "encoding": "grayscale8",
+          "min": 6.4927769903369725,
+          "max": 100.0,
+          "quantization_step": 0.36669499219475693,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/027.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5320.0,
+          "quantization_step": 20.862745098039216,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/027.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.099609375,
+          "quantization_step": 0.000390625,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/027.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004398811608552933,
+          "max": 8.598148811608553,
+          "quantization_step": 0.03370098039215686,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/027.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.158179689107272,
+          "quantization_step": 0.02414972427100891,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 30,
+      "valid_time": "2026-11-22T06:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/030.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -21.8443603515625,
+            -20.238418579101562
+          ],
+          "max": [
+            23.2181396484375,
+            20.980331420898438
+          ],
+          "quantization_step": [
+            0.17671568627450981,
+            0.1616421568627451
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/030.png",
+          "encoding": "grayscale8",
+          "min": 227.27444458007812,
+          "max": 320.5244445800781,
+          "quantization_step": 0.3656862745098039,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/030.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4759521484375,
+          "quantization_step": 0.0018664790134803922,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/030.png",
+          "encoding": "grayscale8",
+          "min": 0.16962867975234985,
+          "max": 34.10712867975235,
+          "quantization_step": 0.13308823529411765,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/030.png",
+          "encoding": "grayscale8",
+          "min": 95379.0625,
+          "max": 104415.0625,
+          "quantization_step": 35.43529411764706,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/030.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/030.png",
+          "encoding": "grayscale8",
+          "min": 3.622649565993302,
+          "max": 100.0,
+          "quantization_step": 0.3779503938588498,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/030.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5392.0,
+          "quantization_step": 21.145098039215686,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/030.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.1055908203125,
+          "quantization_step": 0.0004140816482843137,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/030.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004393577575683594,
+          "max": 8.051268577575684,
+          "quantization_step": 0.03155637254901961,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/030.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 4.998372130837533,
+          "quantization_step": 0.019601459336617773,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 33,
+      "valid_time": "2026-11-22T09:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/033.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.826095581054688,
+            -19.927658081054688
+          ],
+          "max": [
+            23.455154418945312,
+            21.978591918945312
+          ],
+          "quantization_step": [
+            0.18149509803921568,
+            0.16433823529411765
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/033.png",
+          "encoding": "grayscale8",
+          "min": 227.45980834960938,
+          "max": 316.9598083496094,
+          "quantization_step": 0.3509803921568627,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/033.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4779052734375,
+          "quantization_step": 0.0018741383272058824,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/033.png",
+          "encoding": "grayscale8",
+          "min": 0.20344668626785278,
+          "max": 34.70344668626785,
+          "quantization_step": 0.13529411764705881,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/033.png",
+          "encoding": "grayscale8",
+          "min": 95426.9375,
+          "max": 104046.9375,
+          "quantization_step": 33.80392156862745,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/033.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/033.png",
+          "encoding": "grayscale8",
+          "min": 4.39534895466675,
+          "max": 100.0,
+          "quantization_step": 0.3749202001777775,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/033.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 4784.0,
+          "quantization_step": 18.76078431372549,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/033.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.10870361328125,
+          "quantization_step": 0.00042628867953431373,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/033.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004403609782457352,
+          "max": 8.566903609782457,
+          "quantization_step": 0.03357843137254902,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/033.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.002440810494413,
+          "quantization_step": 0.019617414943115346,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 36,
+      "valid_time": "2026-11-22T12:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/036.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.944198608398438,
+            -21.441650390625
+          ],
+          "max": [
+            24.743301391601562,
+            21.027099609375
+          ],
+          "quantization_step": [
+            0.18700980392156863,
+            0.16654411764705881
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/036.png",
+          "encoding": "grayscale8",
+          "min": 227.947998046875,
+          "max": 314.947998046875,
+          "quantization_step": 0.3411764705882353,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/036.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.478515625,
+          "quantization_step": 0.001876531862745098,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/036.png",
+          "encoding": "grayscale8",
+          "min": 0.2612455487251282,
+          "max": 34.19874554872513,
+          "quantization_step": 0.13308823529411765,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/036.png",
+          "encoding": "grayscale8",
+          "min": 95517.6875,
+          "max": 104201.6875,
+          "quantization_step": 34.05490196078431,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/036.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/036.png",
+          "encoding": "grayscale8",
+          "min": 5.585921607099995,
+          "max": 100.0,
+          "quantization_step": 0.37025128781529415,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/036.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5136.0,
+          "quantization_step": 20.141176470588235,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/036.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.11517333984375,
+          "quantization_step": 0.00045166015625,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/036.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004409030079841614,
+          "max": 9.145034030079842,
+          "quantization_step": 0.035845588235294115,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/036.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 4.492470552676631,
+          "quantization_step": 0.017617531579124043,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 39,
+      "valid_time": "2026-11-22T15:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/039.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -21.967437744140625,
+            -20.914840698242188
+          ],
+          "max": [
+            23.157562255859375,
+            22.022659301757812
+          ],
+          "quantization_step": [
+            0.1769607843137255,
+            0.16838235294117648
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/039.png",
+          "encoding": "grayscale8",
+          "min": 228.7560577392578,
+          "max": 313.7560577392578,
+          "quantization_step": 0.3333333333333333,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/039.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.478759765625,
+          "quantization_step": 0.0018774892769607844,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/039.png",
+          "encoding": "grayscale8",
+          "min": 0.23179829120635986,
+          "max": 33.73179829120636,
+          "quantization_step": 0.13137254901960785,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/039.png",
+          "encoding": "grayscale8",
+          "min": 95620.8125,
+          "max": 104412.8125,
+          "quantization_step": 34.47843137254902,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/039.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/039.png",
+          "encoding": "grayscale8",
+          "min": 4.194879664183557,
+          "max": 100.0,
+          "quantization_step": 0.37570635425810367,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/039.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5816.0,
+          "quantization_step": 22.807843137254903,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/039.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.1248779296875,
+          "quantization_step": 0.0004897173713235294,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/039.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004405304789543152,
+          "max": 9.645030304789543,
+          "quantization_step": 0.037806372549019605,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/039.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.382504451151589,
+          "quantization_step": 0.02110786059275133,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 42,
+      "valid_time": "2026-11-22T18:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/042.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.01678466796875,
+            -19.948974609375
+          ],
+          "max": [
+            22.95196533203125,
+            22.551025390625
+          ],
+          "quantization_step": [
+            0.1763480392156863,
+            0.16666666666666666
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/042.png",
+          "encoding": "grayscale8",
+          "min": 229.53640747070312,
+          "max": 314.0364074707031,
+          "quantization_step": 0.33137254901960783,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/042.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4788818359375,
+          "quantization_step": 0.0018779679840686275,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/042.png",
+          "encoding": "grayscale8",
+          "min": 0.23809194564819336,
+          "max": 33.61309194564819,
+          "quantization_step": 0.13088235294117648,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/042.png",
+          "encoding": "grayscale8",
+          "min": 95649.875,
+          "max": 105013.875,
+          "quantization_step": 36.72156862745098,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/042.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/042.png",
+          "encoding": "grayscale8",
+          "min": 2.57247068813518,
+          "max": 100.0,
+          "quantization_step": 0.38206874239946986,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/042.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 6096.0,
+          "quantization_step": 23.905882352941177,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/042.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.139404296875,
+          "quantization_step": 0.0005466835171568628,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/042.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.0044020675122737885,
+          "max": 9.551277067512274,
+          "quantization_step": 0.03743872549019608,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/042.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.876183610235162,
+          "quantization_step": 0.02696542592249083,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 45,
+      "valid_time": "2026-11-22T21:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/045.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -21.352493286132812,
+            -19.652450561523438
+          ],
+          "max": [
+            24.241256713867188,
+            22.722549438476562
+          ],
+          "quantization_step": [
+            0.17879901960784314,
+            0.1661764705882353
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/045.png",
+          "encoding": "grayscale8",
+          "min": 229.5996551513672,
+          "max": 311.3496551513672,
+          "quantization_step": 0.3205882352941177,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/045.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.4808349609375,
+          "quantization_step": 0.0018856272977941177,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/045.png",
+          "encoding": "grayscale8",
+          "min": 0.22419381141662598,
+          "max": 34.224193811416626,
+          "quantization_step": 0.13333333333333333,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/045.png",
+          "encoding": "grayscale8",
+          "min": 95820.75,
+          "max": 105124.75,
+          "quantization_step": 36.48627450980392,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/045.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/045.png",
+          "encoding": "grayscale8",
+          "min": 2.072296962368062,
+          "max": 100.0,
+          "quantization_step": 0.3840302079907135,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/045.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 7680.0,
+          "quantization_step": 30.11764705882353,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/045.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.146240234375,
+          "quantization_step": 0.0005734911151960785,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/045.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004407074302434921,
+          "max": 9.582532074302435,
+          "quantization_step": 0.03756127450980392,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/045.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.7267987530847755,
+          "quantization_step": 0.02245803432582265,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 48,
+      "valid_time": "2026-11-23T00:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/048.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -21.898452758789062,
+            -19.978546142578125
+          ],
+          "max": [
+            23.664047241210938,
+            20.302703857421875
+          ],
+          "quantization_step": [
+            0.1786764705882353,
+            0.1579656862745098
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/048.png",
+          "encoding": "grayscale8",
+          "min": 228.67384338378906,
+          "max": 312.92384338378906,
+          "quantization_step": 0.3303921568627451,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/048.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.498291015625,
+          "quantization_step": 0.0019540824142156863,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/048.png",
+          "encoding": "grayscale8",
+          "min": 0.19307255744934082,
+          "max": 34.69307255744934,
+          "quantization_step": 0.13529411764705881,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/048.png",
+          "encoding": "grayscale8",
+          "min": 95976.375,
+          "max": 105396.375,
+          "quantization_step": 36.94117647058823,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/048.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/048.png",
+          "encoding": "grayscale8",
+          "min": 4.283356768870164,
+          "max": 100.0,
+          "quantization_step": 0.375359385220117,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/048.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5864.0,
+          "quantization_step": 22.99607843137255,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/048.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.146484375,
+          "quantization_step": 0.0005744485294117647,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/048.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004407629370689392,
+          "max": 10.02003262937069,
+          "quantization_step": 0.039276960784313725,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/048.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.915529526875285,
+          "quantization_step": 0.02319815500735406,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 51,
+      "valid_time": "2026-11-23T03:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/051.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -20.607192993164062,
+            -21.91705322265625
+          ],
+          "max": [
+            23.174057006835938,
+            20.61419677734375
+          ],
+          "quantization_step": [
+            0.17169117647058824,
+            0.1667892156862745
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/051.png",
+          "encoding": "grayscale8",
+          "min": 231.81573486328125,
+          "max": 316.81573486328125,
+          "quantization_step": 0.3333333333333333,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/051.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.51171875,
+          "quantization_step": 0.002006740196078431,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/051.png",
+          "encoding": "grayscale8",
+          "min": 0.22946250438690186,
+          "max": 36.2919625043869,
+          "quantization_step": 0.14142156862745098,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/051.png",
+          "encoding": "grayscale8",
+          "min": 96016.75,
+          "max": 105400.75,
+          "quantization_step": 36.8,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/051.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/051.png",
+          "encoding": "grayscale8",
+          "min": 7.140729696862265,
+          "max": 100.0,
+          "quantization_step": 0.36415400118877544,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/051.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5952.0,
+          "quantization_step": 23.341176470588234,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/051.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.14794921875,
+          "quantization_step": 0.0005801930147058824,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/051.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004404351115226746,
+          "max": 10.410654351115227,
+          "quantization_step": 0.040808823529411765,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/051.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 4.820171104760355,
+          "quantization_step": 0.01890263178337394,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 54,
+      "valid_time": "2026-11-23T06:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/054.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -20.452316284179688,
+            -20.2474365234375
+          ],
+          "max": [
+            26.391433715820312,
+            23.4400634765625
+          ],
+          "quantization_step": [
+            0.18370098039215688,
+            0.1713235294117647
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/054.png",
+          "encoding": "grayscale8",
+          "min": 229.32159423828125,
+          "max": 317.57159423828125,
+          "quantization_step": 0.346078431372549,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/054.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.512939453125,
+          "quantization_step": 0.0020115272671568625,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/054.png",
+          "encoding": "grayscale8",
+          "min": 0.24129998683929443,
+          "max": 38.178799986839294,
+          "quantization_step": 0.14877450980392157,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/054.png",
+          "encoding": "grayscale8",
+          "min": 95877.875,
+          "max": 105133.875,
+          "quantization_step": 36.29803921568627,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/054.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/054.png",
+          "encoding": "grayscale8",
+          "min": 5.254419793609317,
+          "max": 100.0,
+          "quantization_step": 0.37155129492702227,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/054.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 6456.0,
+          "quantization_step": 25.31764705882353,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/054.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.149169921875,
+          "quantization_step": 0.0005849800857843137,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/054.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004403878003358841,
+          "max": 10.957528878003359,
+          "quantization_step": 0.04295343137254902,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/054.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.221337931188391,
+          "quantization_step": 0.020475835024268203,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 57,
+      "valid_time": "2026-11-23T09:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/057.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -20.157852172851562,
+            -21.529891967773438
+          ],
+          "max": [
+            25.029647827148438,
+            22.095108032226562
+          ],
+          "quantization_step": [
+            0.17720588235294119,
+            0.17107843137254902
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/057.png",
+          "encoding": "grayscale8",
+          "min": 228.6082000732422,
+          "max": 315.8582000732422,
+          "quantization_step": 0.34215686274509804,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/057.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.51416015625,
+          "quantization_step": 0.0020163143382352943,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/057.png",
+          "encoding": "grayscale8",
+          "min": 0.19751638174057007,
+          "max": 36.01001638174057,
+          "quantization_step": 0.14044117647058824,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/057.png",
+          "encoding": "grayscale8",
+          "min": 95779.375,
+          "max": 104391.375,
+          "quantization_step": 33.772549019607844,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/057.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/057.png",
+          "encoding": "grayscale8",
+          "min": 4.164241084609841,
+          "max": 100.0,
+          "quantization_step": 0.37582650555054964,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/057.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 6456.0,
+          "quantization_step": 25.31764705882353,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/057.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.1500244140625,
+          "quantization_step": 0.0005883310355392157,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/057.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004403151571750641,
+          "max": 11.30127815157175,
+          "quantization_step": 0.044301470588235296,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/057.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.818433351570392,
+          "quantization_step": 0.02281738569243291,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 60,
+      "valid_time": "2026-11-23T12:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/060.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -20.418548583984375,
+            -23.844696044921875
+          ],
+          "max": [
+            25.393951416015625,
+            22.249053955078125
+          ],
+          "quantization_step": [
+            0.17965686274509804,
+            0.18075980392156862
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/060.png",
+          "encoding": "grayscale8",
+          "min": 228.47366333007812,
+          "max": 314.4736633300781,
+          "quantization_step": 0.33725490196078434,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/060.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.51416015625,
+          "quantization_step": 0.0020163143382352943,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/060.png",
+          "encoding": "grayscale8",
+          "min": 0.23772847652435303,
+          "max": 39.17522847652435,
+          "quantization_step": 0.15269607843137256,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/060.png",
+          "encoding": "grayscale8",
+          "min": 95636.8125,
+          "max": 104328.8125,
+          "quantization_step": 34.08627450980392,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/060.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/060.png",
+          "encoding": "grayscale8",
+          "min": 3.166693594287933,
+          "max": 100.0,
+          "quantization_step": 0.3797384564929885,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/060.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 6912.0,
+          "quantization_step": 27.105882352941176,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/060.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.150634765625,
+          "quantization_step": 0.0005907245710784313,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/060.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004397500306367874,
+          "max": 11.676272500306368,
+          "quantization_step": 0.04577205882352941,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/060.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.832403199653925,
+          "quantization_step": 0.02287216941040755,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 63,
+      "valid_time": "2026-11-23T15:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/063.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -21.303741455078125,
+            -25.6080322265625
+          ],
+          "max": [
+            26.852508544921875,
+            21.4232177734375
+          ],
+          "quantization_step": [
+            0.18884803921568627,
+            0.18443627450980393
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/063.png",
+          "encoding": "grayscale8",
+          "min": 228.19500732421875,
+          "max": 313.19500732421875,
+          "quantization_step": 0.3333333333333333,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/063.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.51416015625,
+          "quantization_step": 0.0020163143382352943,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/063.png",
+          "encoding": "grayscale8",
+          "min": 0.1800571084022522,
+          "max": 39.30505710840225,
+          "quantization_step": 0.15343137254901962,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/063.png",
+          "encoding": "grayscale8",
+          "min": 95457.6875,
+          "max": 104817.6875,
+          "quantization_step": 36.705882352941174,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/063.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/063.png",
+          "encoding": "grayscale8",
+          "min": 4.138188054816797,
+          "max": 99.99488323453734,
+          "quantization_step": 0.3759086085479237,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/063.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 6936.0,
+          "quantization_step": 27.2,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/063.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.1517333984375,
+          "quantization_step": 0.0005950329350490196,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/063.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.0043984465301036835,
+          "max": 12.379398446530104,
+          "quantization_step": 0.04852941176470588,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/063.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.382504451151589,
+          "quantization_step": 0.02110786059275133,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 66,
+      "valid_time": "2026-11-23T18:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/066.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -22.552825927734375,
+            -25.6229248046875
+          ],
+          "max": [
+            27.290924072265625,
+            23.1895751953125
+          ],
+          "quantization_step": [
+            0.1954656862745098,
+            0.191421568627451
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/066.png",
+          "encoding": "grayscale8",
+          "min": 228.19769287109375,
+          "max": 314.19769287109375,
+          "quantization_step": 0.33725490196078434,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/066.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.519287109375,
+          "quantization_step": 0.002036420036764706,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/066.png",
+          "encoding": "grayscale8",
+          "min": 0.20694267749786377,
+          "max": 40.144442677497864,
+          "quantization_step": 0.15661764705882353,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/066.png",
+          "encoding": "grayscale8",
+          "min": 95435.5,
+          "max": 105423.5,
+          "quantization_step": 39.168627450980395,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/066.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/066.png",
+          "encoding": "grayscale8",
+          "min": 3.3008373050587765,
+          "max": 100.0,
+          "quantization_step": 0.3792124027252597,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/066.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 6520.0,
+          "quantization_step": 25.568627450980394,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/066.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.15380859375,
+          "quantization_step": 0.000603170955882353,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/066.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004399508237838745,
+          "max": 12.770024508237839,
+          "quantization_step": 0.050061274509803924,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/066.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 5.374939437643305,
+          "quantization_step": 0.021078193873111,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 69,
+      "valid_time": "2026-11-23T21:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/069.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -23.336090087890625,
+            -22.716262817382812
+          ],
+          "max": [
+            25.695159912109375,
+            23.158737182617188
+          ],
+          "quantization_step": [
+            0.1922794117647059,
+            0.17990196078431372
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/069.png",
+          "encoding": "grayscale8",
+          "min": 228.23788452148438,
+          "max": 311.7378845214844,
+          "quantization_step": 0.32745098039215687,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/069.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.535888671875,
+          "quantization_step": 0.0021015242034313725,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/069.png",
+          "encoding": "grayscale8",
+          "min": 0.16852760314941406,
+          "max": 38.731027603149414,
+          "quantization_step": 0.15122549019607842,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/069.png",
+          "encoding": "grayscale8",
+          "min": 95473.125,
+          "max": 105369.125,
+          "quantization_step": 38.8078431372549,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/069.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/069.png",
+          "encoding": "grayscale8",
+          "min": 2.6390806463931273,
+          "max": 100.0,
+          "quantization_step": 0.3818075268768897,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/069.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5912.0,
+          "quantization_step": 23.184313725490195,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/069.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.15869140625,
+          "quantization_step": 0.0006223192401960784,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/069.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.004396870732307434,
+          "max": 12.613771870732307,
+          "quantization_step": 0.049448529411764704,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/069.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.828679182316299,
+          "quantization_step": 0.02677913404829921,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    },
+    {
+      "step": 72,
+      "valid_time": "2026-11-24T00:00:00Z",
+      "layers": {
+        "wind10m": {
+          "url": "wind10m/072.png",
+          "encoding": "rgba8",
+          "channels": {
+            "u": "R",
+            "v": "G",
+            "mask": "A"
+          },
+          "min": [
+            -23.524765014648438,
+            -28.2291259765625
+          ],
+          "max": [
+            25.943984985351562,
+            21.2083740234375
+          ],
+          "quantization_step": [
+            0.1939950980392157,
+            0.19387254901960785
+          ],
+          "units": "m/s"
+        },
+        "t2m": {
+          "url": "t2m/072.png",
+          "encoding": "grayscale8",
+          "min": 228.78553771972656,
+          "max": 311.53553771972656,
+          "quantization_step": 0.32450980392156864,
+          "units": "K"
+        },
+        "precip": {
+          "url": "precip/072.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.557861328125,
+          "quantization_step": 0.0021876914828431373,
+          "units": "m"
+        },
+        "gust": {
+          "url": "gust/072.png",
+          "encoding": "grayscale8",
+          "min": 0.19176584482192993,
+          "max": 39.19176584482193,
+          "quantization_step": 0.15294117647058825,
+          "period_hours": 1,
+          "units": "m/s"
+        },
+        "msl": {
+          "url": "msl/072.png",
+          "encoding": "grayscale8",
+          "min": 95320.1875,
+          "max": 105144.1875,
+          "quantization_step": 38.52549019607843,
+          "units": "Pa"
+        },
+        "tcc": {
+          "url": "tcc/072.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 1.0,
+          "quantization_step": 0.00392156862745098,
+          "units": "0-1"
+        },
+        "rh2m": {
+          "url": "rh2m/072.png",
+          "encoding": "grayscale8",
+          "min": 4.002981584734072,
+          "max": 100.0,
+          "quantization_step": 0.3764588957461409,
+          "units": "%"
+        },
+        "cape": {
+          "url": "cape/072.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 5752.0,
+          "quantization_step": 22.55686274509804,
+          "units": "J/kg"
+        },
+        "snow": {
+          "url": "snow/072.png",
+          "encoding": "grayscale8",
+          "min": 0.0,
+          "max": 0.1700439453125,
+          "quantization_step": 0.0006668390012254902,
+          "units": "m"
+        },
+        "swh": {
+          "url": "swh/072.png",
+          "encoding": "rgba8",
+          "channels": {
+            "value": "R",
+            "mask": "A"
+          },
+          "min": 0.00437767431139946,
+          "max": 12.6918776743114,
+          "quantization_step": 0.04975490196078431,
+          "units": "m"
+        },
+        "precip_rate": {
+          "url": "precip_rate/072.png",
+          "encoding": "grayscale8",
+          "transform": "sqrt",
+          "min": 0.0,
+          "max": 6.204259709398589,
+          "quantization_step": 0.024330430232935643,
+          "interval_hours": 3,
+          "units": "mm/h"
+        }
+      }
+    }
+  ],
+  "license": "CC-BY-4.0",
+  "attribution": "ECMWF Open Data © European Centre for Medium-Range Weather Forecasts (ECMWF), licensed under CC BY 4.0",
+  "warnings": [
+    {
+      "source": "DPC vigilanza",
+      "message": "DPC vigilanza non aggiornato: ValueError: sezioni vigilanza vuote o senza titoli in grassetto"
+    }
+  ],
+  "precip_eu": {
+    "model": "icon-eu",
+    "run": "2026112106",
+    "attribution": "Deutscher Wetterdienst (DWD), ICON-EU",
+    "license": "CC-BY-4.0",
+    "grid": {
+      "width": 1377,
+      "height": 657,
+      "lat0": 70.5,
+      "lon0": -23.5,
+      "dlat": 0.0625,
+      "dlon": 0.0625,
+      "scanning_mode": 0
+    },
+    "encoding": "grayscale8",
+    "transform": "sqrt",
+    "units": "mm/h",
+    "interval_hours": 1,
+    "steps": [
+      {
+        "valid_time": "2026-11-21T07:00:00Z",
+        "url": "precip_eu/001.png",
+        "min": 0.0,
+        "max": 3.9974051642127795,
+        "quantization_step": 0.01567609868318737
+      },
+      {
+        "valid_time": "2026-11-21T08:00:00Z",
+        "url": "precip_eu/002.png",
+        "min": 0.0,
+        "max": 3.9894269442803436,
+        "quantization_step": 0.015644811546197426
+      },
+      {
+        "valid_time": "2026-11-21T09:00:00Z",
+        "url": "precip_eu/003.png",
+        "min": 0.0,
+        "max": 3.989120947965855,
+        "quantization_step": 0.01564361156065041
+      },
+      {
+        "valid_time": "2026-11-21T10:00:00Z",
+        "url": "precip_eu/004.png",
+        "min": 0.0,
+        "max": 4.833557825246327,
+        "quantization_step": 0.018955128726456185
+      },
+      {
+        "valid_time": "2026-11-21T11:00:00Z",
+        "url": "precip_eu/005.png",
+        "min": 0.0,
+        "max": 5.019979612757407,
+        "quantization_step": 0.01968619455983297
+      },
+      {
+        "valid_time": "2026-11-21T12:00:00Z",
+        "url": "precip_eu/006.png",
+        "min": 0.0,
+        "max": 5.024937810560445,
+        "quantization_step": 0.019705638472786058
+      },
+      {
+        "valid_time": "2026-11-21T13:00:00Z",
+        "url": "precip_eu/007.png",
+        "min": 0.0,
+        "max": 5.476155699941337,
+        "quantization_step": 0.021475120391926814
+      },
+      {
+        "valid_time": "2026-11-21T14:00:00Z",
+        "url": "precip_eu/008.png",
+        "min": 0.0,
+        "max": 5.201599813999535,
+        "quantization_step": 0.020398430643135432
+      },
+      {
+        "valid_time": "2026-11-21T15:00:00Z",
+        "url": "precip_eu/009.png",
+        "min": 0.0,
+        "max": 4.846067993745032,
+        "quantization_step": 0.01900418821076483
+      },
+      {
+        "valid_time": "2026-11-21T16:00:00Z",
+        "url": "precip_eu/010.png",
+        "min": 0.0,
+        "max": 4.497612213719631,
+        "quantization_step": 0.017637694955763256
+      },
+      {
+        "valid_time": "2026-11-21T17:00:00Z",
+        "url": "precip_eu/011.png",
+        "min": 0.0,
+        "max": 3.7346038109818287,
+        "quantization_step": 0.01464550514110521
+      },
+      {
+        "valid_time": "2026-11-21T18:00:00Z",
+        "url": "precip_eu/012.png",
+        "min": 0.0,
+        "max": 4.182366256080402,
+        "quantization_step": 0.01640143629835452
+      },
+      {
+        "valid_time": "2026-11-21T19:00:00Z",
+        "url": "precip_eu/013.png",
+        "min": 0.0,
+        "max": 4.046844835794919,
+        "quantization_step": 0.015869979748215367
+      },
+      {
+        "valid_time": "2026-11-21T20:00:00Z",
+        "url": "precip_eu/014.png",
+        "min": 0.0,
+        "max": 4.085511748851054,
+        "quantization_step": 0.016021614701376682
+      },
+      {
+        "valid_time": "2026-11-21T21:00:00Z",
+        "url": "precip_eu/015.png",
+        "min": 0.0,
+        "max": 4.775220871855039,
+        "quantization_step": 0.01872635636021584
+      },
+      {
+        "valid_time": "2026-11-21T22:00:00Z",
+        "url": "precip_eu/016.png",
+        "min": 0.0,
+        "max": 4.837798763384025,
+        "quantization_step": 0.01897175985640794
+      },
+      {
+        "valid_time": "2026-11-21T23:00:00Z",
+        "url": "precip_eu/017.png",
+        "min": 0.0,
+        "max": 4.2793106921559225,
+        "quantization_step": 0.016781610557474205
+      },
+      {
+        "valid_time": "2026-11-22T00:00:00Z",
+        "url": "precip_eu/018.png",
+        "min": 0.0,
+        "max": 4.197748652551746,
+        "quantization_step": 0.01646175942177155
+      },
+      {
+        "valid_time": "2026-11-22T01:00:00Z",
+        "url": "precip_eu/019.png",
+        "min": 0.0,
+        "max": 4.072104032315481,
+        "quantization_step": 0.015969035420845025
+      },
+      {
+        "valid_time": "2026-11-22T02:00:00Z",
+        "url": "precip_eu/020.png",
+        "min": 0.0,
+        "max": 3.9809114848235447,
+        "quantization_step": 0.015611417587543313
+      },
+      {
+        "valid_time": "2026-11-22T03:00:00Z",
+        "url": "precip_eu/021.png",
+        "min": 0.0,
+        "max": 3.5111429762970348,
+        "quantization_step": 0.013769188142341312
+      },
+      {
+        "valid_time": "2026-11-22T04:00:00Z",
+        "url": "precip_eu/022.png",
+        "min": 0.0,
+        "max": 3.4804139480814635,
+        "quantization_step": 0.013648682149339073
+      },
+      {
+        "valid_time": "2026-11-22T05:00:00Z",
+        "url": "precip_eu/023.png",
+        "min": 0.0,
+        "max": 3.408399551108995,
+        "quantization_step": 0.01336627274944704
+      },
+      {
+        "valid_time": "2026-11-22T06:00:00Z",
+        "url": "precip_eu/024.png",
+        "min": 0.0,
+        "max": 3.447145558284419,
+        "quantization_step": 0.013518217875625172
+      },
+      {
+        "valid_time": "2026-11-22T07:00:00Z",
+        "url": "precip_eu/025.png",
+        "min": 0.0,
+        "max": 3.2427804427682116,
+        "quantization_step": 0.012716786050071418
+      },
+      {
+        "valid_time": "2026-11-22T08:00:00Z",
+        "url": "precip_eu/026.png",
+        "min": 0.0,
+        "max": 3.3825147819337023,
+        "quantization_step": 0.013264763850720401
+      },
+      {
+        "valid_time": "2026-11-22T09:00:00Z",
+        "url": "precip_eu/027.png",
+        "min": 0.0,
+        "max": 3.8936045317931303,
+        "quantization_step": 0.015269037379580902
+      },
+      {
+        "valid_time": "2026-11-22T10:00:00Z",
+        "url": "precip_eu/028.png",
+        "min": 0.0,
+        "max": 4.458138625031752,
+        "quantization_step": 0.017482896568751967
+      },
+      {
+        "valid_time": "2026-11-22T11:00:00Z",
+        "url": "precip_eu/029.png",
+        "min": 0.0,
+        "max": 4.504338186681813,
+        "quantization_step": 0.017664071320320836
+      },
+      {
+        "valid_time": "2026-11-22T12:00:00Z",
+        "url": "precip_eu/030.png",
+        "min": 0.0,
+        "max": 4.172547932618629,
+        "quantization_step": 0.016362933069092665
+      },
+      {
+        "valid_time": "2026-11-22T13:00:00Z",
+        "url": "precip_eu/031.png",
+        "min": 0.0,
+        "max": 3.758324094593227,
+        "quantization_step": 0.01473852586114991
+      },
+      {
+        "valid_time": "2026-11-22T14:00:00Z",
+        "url": "precip_eu/032.png",
+        "min": 0.0,
+        "max": 3.9335297443898907,
+        "quantization_step": 0.01542560684074467
+      },
+      {
+        "valid_time": "2026-11-22T15:00:00Z",
+        "url": "precip_eu/033.png",
+        "min": 0.0,
+        "max": 3.7934977263733796,
+        "quantization_step": 0.014876461672052468
+      },
+      {
+        "valid_time": "2026-11-22T16:00:00Z",
+        "url": "precip_eu/034.png",
+        "min": 0.0,
+        "max": 3.276335605520289,
+        "quantization_step": 0.012848374923608977
+      },
+      {
+        "valid_time": "2026-11-22T17:00:00Z",
+        "url": "precip_eu/035.png",
+        "min": 0.0,
+        "max": 2.9514297382793986,
+        "quantization_step": 0.011574234267762348
+      },
+      {
+        "valid_time": "2026-11-22T18:00:00Z",
+        "url": "precip_eu/036.png",
+        "min": 0.0,
+        "max": 3.5963305952039506,
+        "quantization_step": 0.014103257236093923
+      },
+      {
+        "valid_time": "2026-11-22T19:00:00Z",
+        "url": "precip_eu/037.png",
+        "min": 0.0,
+        "max": 4.285695684483442,
+        "quantization_step": 0.016806649743072322
+      },
+      {
+        "valid_time": "2026-11-22T20:00:00Z",
+        "url": "precip_eu/038.png",
+        "min": 0.0,
+        "max": 4.352172589638421,
+        "quantization_step": 0.01706734348877812
+      },
+      {
+        "valid_time": "2026-11-22T21:00:00Z",
+        "url": "precip_eu/039.png",
+        "min": 0.0,
+        "max": 4.655306112384018,
+        "quantization_step": 0.018256102401505953
+      },
+      {
+        "valid_time": "2026-11-22T22:00:00Z",
+        "url": "precip_eu/040.png",
+        "min": 0.0,
+        "max": 4.676654119132609,
+        "quantization_step": 0.01833982007502984
+      },
+      {
+        "valid_time": "2026-11-22T23:00:00Z",
+        "url": "precip_eu/041.png",
+        "min": 0.0,
+        "max": 4.155192534648665,
+        "quantization_step": 0.016294872684896728
+      },
+      {
+        "valid_time": "2026-11-23T00:00:00Z",
+        "url": "precip_eu/042.png",
+        "min": 0.0,
+        "max": 3.6017573835559773,
+        "quantization_step": 0.014124538759043048
+      },
+      {
+        "valid_time": "2026-11-23T01:00:00Z",
+        "url": "precip_eu/043.png",
+        "min": 0.0,
+        "max": 3.4798527267687636,
+        "quantization_step": 0.013646481281446132
+      },
+      {
+        "valid_time": "2026-11-23T02:00:00Z",
+        "url": "precip_eu/044.png",
+        "min": 0.0,
+        "max": 3.6443449342783127,
+        "quantization_step": 0.014291548761875736
+      },
+      {
+        "valid_time": "2026-11-23T03:00:00Z",
+        "url": "precip_eu/045.png",
+        "min": 0.0,
+        "max": 4.20657966761596,
+        "quantization_step": 0.016496390853395923
+      },
+      {
+        "valid_time": "2026-11-23T04:00:00Z",
+        "url": "precip_eu/046.png",
+        "min": 0.0,
+        "max": 5.673402858955108,
+        "quantization_step": 0.022248638662569053
+      },
+      {
+        "valid_time": "2026-11-23T05:00:00Z",
+        "url": "precip_eu/047.png",
+        "min": 0.0,
+        "max": 6.051536478449089,
+        "quantization_step": 0.023731515601761132
+      },
+      {
+        "valid_time": "2026-11-23T06:00:00Z",
+        "url": "precip_eu/048.png",
+        "min": 0.0,
+        "max": 6.222439232326821,
+        "quantization_step": 0.024401722479713023
+      },
+      {
+        "valid_time": "2026-11-23T07:00:00Z",
+        "url": "precip_eu/049.png",
+        "min": 0.0,
+        "max": 6.267163931955187,
+        "quantization_step": 0.02457711345864779
+      },
+      {
+        "valid_time": "2026-11-23T08:00:00Z",
+        "url": "precip_eu/050.png",
+        "min": 0.0,
+        "max": 7.135135335086504,
+        "quantization_step": 0.027980922882692175
+      },
+      {
+        "valid_time": "2026-11-23T09:00:00Z",
+        "url": "precip_eu/051.png",
+        "min": 0.0,
+        "max": 6.876704334199632,
+        "quantization_step": 0.026967467977253457
+      },
+      {
+        "valid_time": "2026-11-23T10:00:00Z",
+        "url": "precip_eu/052.png",
+        "min": 0.0,
+        "max": 5.744562646538029,
+        "quantization_step": 0.022527696653090307
+      },
+      {
+        "valid_time": "2026-11-23T11:00:00Z",
+        "url": "precip_eu/053.png",
+        "min": 0.0,
+        "max": 5.806112081246796,
+        "quantization_step": 0.022769066985281552
+      },
+      {
+        "valid_time": "2026-11-23T12:00:00Z",
+        "url": "precip_eu/054.png",
+        "min": 0.0,
+        "max": 5.999348923008229,
+        "quantization_step": 0.0235268585216009
+      },
+      {
+        "valid_time": "2026-11-23T13:00:00Z",
+        "url": "precip_eu/055.png",
+        "min": 0.0,
+        "max": 5.772036577326932,
+        "quantization_step": 0.02263543755814483
+      },
+      {
+        "valid_time": "2026-11-23T14:00:00Z",
+        "url": "precip_eu/056.png",
+        "min": 0.0,
+        "max": 5.306982428838445,
+        "quantization_step": 0.020811695799366453
+      },
+      {
+        "valid_time": "2026-11-23T15:00:00Z",
+        "url": "precip_eu/057.png",
+        "min": 0.0,
+        "max": 4.997264876910168,
+        "quantization_step": 0.0195971171643536
+      },
+      {
+        "valid_time": "2026-11-23T16:00:00Z",
+        "url": "precip_eu/058.png",
+        "min": 0.0,
+        "max": 4.1991442580602065,
+        "quantization_step": 0.016467232384549828
+      },
+      {
+        "valid_time": "2026-11-23T17:00:00Z",
+        "url": "precip_eu/059.png",
+        "min": 0.0,
+        "max": 3.6336104634371584,
+        "quantization_step": 0.014249452797792779
+      },
+      {
+        "valid_time": "2026-11-23T18:00:00Z",
+        "url": "precip_eu/060.png",
+        "min": 0.0,
+        "max": 3.594157585582469,
+        "quantization_step": 0.01409473562973517
+      },
+      {
+        "valid_time": "2026-11-23T19:00:00Z",
+        "url": "precip_eu/061.png",
+        "min": 0.0,
+        "max": 3.931046298379097,
+        "quantization_step": 0.015415867836780771
+      },
+      {
+        "valid_time": "2026-11-23T20:00:00Z",
+        "url": "precip_eu/062.png",
+        "min": 0.0,
+        "max": 3.600130205978667,
+        "quantization_step": 0.014118157670504576
+      },
+      {
+        "valid_time": "2026-11-23T21:00:00Z",
+        "url": "precip_eu/063.png",
+        "min": 0.0,
+        "max": 3.2137400330456103,
+        "quantization_step": 0.012602902090374943
+      },
+      {
+        "valid_time": "2026-11-23T22:00:00Z",
+        "url": "precip_eu/064.png",
+        "min": 0.0,
+        "max": 4.172079817069659,
+        "quantization_step": 0.0163610973218418
+      },
+      {
+        "valid_time": "2026-11-23T23:00:00Z",
+        "url": "precip_eu/065.png",
+        "min": 0.0,
+        "max": 4.610619535376998,
+        "quantization_step": 0.01808086092304705
+      },
+      {
+        "valid_time": "2026-11-24T00:00:00Z",
+        "url": "precip_eu/066.png",
+        "min": 0.0,
+        "max": 4.173015995655899,
+        "quantization_step": 0.016364768610415293
+      },
+      {
+        "valid_time": "2026-11-24T01:00:00Z",
+        "url": "precip_eu/067.png",
+        "min": 0.0,
+        "max": 4.732698754410637,
+        "quantization_step": 0.018559602958473087
+      },
+      {
+        "valid_time": "2026-11-24T02:00:00Z",
+        "url": "precip_eu/068.png",
+        "min": 0.0,
+        "max": 4.207508169926709,
+        "quantization_step": 0.01650003203892827
+      },
+      {
+        "valid_time": "2026-11-24T03:00:00Z",
+        "url": "precip_eu/069.png",
+        "min": 0.0,
+        "max": 4.059133220282379,
+        "quantization_step": 0.01591816949130345
+      },
+      {
+        "valid_time": "2026-11-24T04:00:00Z",
+        "url": "precip_eu/070.png",
+        "min": 0.0,
+        "max": 4.09839907768875,
+        "quantization_step": 0.016072153245838237
+      },
+      {
+        "valid_time": "2026-11-24T05:00:00Z",
+        "url": "precip_eu/071.png",
+        "min": 0.0,
+        "max": 4.257346591481601,
+        "quantization_step": 0.01669547682933961
+      },
+      {
+        "valid_time": "2026-11-24T06:00:00Z",
+        "url": "precip_eu/072.png",
+        "min": 0.0,
+        "max": 3.797614382740828,
+        "quantization_step": 0.014892605422513052
+      }
+    ]
+  },
+  "temporali_eu": {
+    "model": "icon-eu",
+    "run": "2026112106",
+    "generated_at": "2026-11-21T10:17:00Z",
+    "attribution": "Deutscher Wetterdienst (DWD), ICON-EU, CC BY 4.0",
+    "license": "CC-BY-4.0",
+    "url": "temporali_eu/2026112106.png",
+    "bbox": {
+      "west": -6.0,
+      "south": 35.0,
+      "east": 21.0,
+      "north": 52.0
+    },
+    "grid": {
+      "width": 433,
+      "height": 273,
+      "lat0": 52.0,
+      "lon0": -6.0,
+      "dlat": 0.0625,
+      "dlon": 0.0625,
+      "scanning_mode": 0
+    },
+    "encoding": "grayscale8",
+    "tile_columns": 6,
+    "interval_hours": 1,
+    "nodata": 255,
+    "steps": [
+      {
+        "step": 1,
+        "valid_time": "2026-11-21T07:00:00Z"
+      },
+      {
+        "step": 2,
+        "valid_time": "2026-11-21T08:00:00Z"
+      },
+      {
+        "step": 3,
+        "valid_time": "2026-11-21T09:00:00Z"
+      },
+      {
+        "step": 4,
+        "valid_time": "2026-11-21T10:00:00Z"
+      },
+      {
+        "step": 5,
+        "valid_time": "2026-11-21T11:00:00Z"
+      },
+      {
+        "step": 6,
+        "valid_time": "2026-11-21T12:00:00Z"
+      },
+      {
+        "step": 7,
+        "valid_time": "2026-11-21T13:00:00Z"
+      },
+      {
+        "step": 8,
+        "valid_time": "2026-11-21T14:00:00Z"
+      },
+      {
+        "step": 9,
+        "valid_time": "2026-11-21T15:00:00Z"
+      },
+      {
+        "step": 10,
+        "valid_time": "2026-11-21T16:00:00Z"
+      },
+      {
+        "step": 11,
+        "valid_time": "2026-11-21T17:00:00Z"
+      },
+      {
+        "step": 12,
+        "valid_time": "2026-11-21T18:00:00Z"
+      },
+      {
+        "step": 13,
+        "valid_time": "2026-11-21T19:00:00Z"
+      },
+      {
+        "step": 14,
+        "valid_time": "2026-11-21T20:00:00Z"
+      },
+      {
+        "step": 15,
+        "valid_time": "2026-11-21T21:00:00Z"
+      },
+      {
+        "step": 16,
+        "valid_time": "2026-11-21T22:00:00Z"
+      },
+      {
+        "step": 17,
+        "valid_time": "2026-11-21T23:00:00Z"
+      },
+      {
+        "step": 18,
+        "valid_time": "2026-11-22T00:00:00Z"
+      },
+      {
+        "step": 19,
+        "valid_time": "2026-11-22T01:00:00Z"
+      },
+      {
+        "step": 20,
+        "valid_time": "2026-11-22T02:00:00Z"
+      },
+      {
+        "step": 21,
+        "valid_time": "2026-11-22T03:00:00Z"
+      },
+      {
+        "step": 22,
+        "valid_time": "2026-11-22T04:00:00Z"
+      },
+      {
+        "step": 23,
+        "valid_time": "2026-11-22T05:00:00Z"
+      },
+      {
+        "step": 24,
+        "valid_time": "2026-11-22T06:00:00Z"
+      },
+      {
+        "step": 25,
+        "valid_time": "2026-11-22T07:00:00Z"
+      },
+      {
+        "step": 26,
+        "valid_time": "2026-11-22T08:00:00Z"
+      },
+      {
+        "step": 27,
+        "valid_time": "2026-11-22T09:00:00Z"
+      },
+      {
+        "step": 28,
+        "valid_time": "2026-11-22T10:00:00Z"
+      },
+      {
+        "step": 29,
+        "valid_time": "2026-11-22T11:00:00Z"
+      },
+      {
+        "step": 30,
+        "valid_time": "2026-11-22T12:00:00Z"
+      },
+      {
+        "step": 31,
+        "valid_time": "2026-11-22T13:00:00Z"
+      },
+      {
+        "step": 32,
+        "valid_time": "2026-11-22T14:00:00Z"
+      },
+      {
+        "step": 33,
+        "valid_time": "2026-11-22T15:00:00Z"
+      },
+      {
+        "step": 34,
+        "valid_time": "2026-11-22T16:00:00Z"
+      },
+      {
+        "step": 35,
+        "valid_time": "2026-11-22T17:00:00Z"
+      },
+      {
+        "step": 36,
+        "valid_time": "2026-11-22T18:00:00Z"
+      },
+      {
+        "step": 37,
+        "valid_time": "2026-11-22T19:00:00Z"
+      },
+      {
+        "step": 38,
+        "valid_time": "2026-11-22T20:00:00Z"
+      },
+      {
+        "step": 39,
+        "valid_time": "2026-11-22T21:00:00Z"
+      },
+      {
+        "step": 40,
+        "valid_time": "2026-11-22T22:00:00Z"
+      },
+      {
+        "step": 41,
+        "valid_time": "2026-11-22T23:00:00Z"
+      },
+      {
+        "step": 42,
+        "valid_time": "2026-11-23T00:00:00Z"
+      },
+      {
+        "step": 43,
+        "valid_time": "2026-11-23T01:00:00Z"
+      },
+      {
+        "step": 44,
+        "valid_time": "2026-11-23T02:00:00Z"
+      },
+      {
+        "step": 45,
+        "valid_time": "2026-11-23T03:00:00Z"
+      },
+      {
+        "step": 46,
+        "valid_time": "2026-11-23T04:00:00Z"
+      },
+      {
+        "step": 47,
+        "valid_time": "2026-11-23T05:00:00Z"
+      },
+      {
+        "step": 48,
+        "valid_time": "2026-11-23T06:00:00Z"
+      }
+    ],
+    "class_counts": {
+      "0": 5655192,
+      "1": 18785,
+      "2": 55,
+      "255": 0
+    },
+    "unknown_ww_counts": {},
+    "class_labels": {
+      "0": "nessun temporale",
+      "1": "temporale",
+      "2": "temporale forte"
+    },
+    "classification": "WMO-4677",
+    "hail_diagnostic": false,
+    "stale": false
+  },
+  "vigilanza": {
+    "url": "vigilanza.json",
+    "file": "vigilanza.json",
+    "data": "2026-11-19",
+    "stato": "non aggiornato"
+  },
+  "allerte": {
+    "url": "allerte.json",
+    "zone_url": "zone-allerta.json",
+    "file": "allerte.json",
+    "zone": "zone-allerta.json",
+    "bollettino": "20261120_1342",
+    "emesso": "2026-11-20T13:42:00+01:00",
+    "impronta_zone": "b61e06ea17aa52de5c55cce24d2e1dea0f72b6b5cec03fdc8a3b31d7201bdec9",
+    "stato": "aggiornato"
+  }
+}
